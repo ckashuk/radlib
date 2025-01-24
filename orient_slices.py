@@ -1,7 +1,7 @@
 import SimpleITK as sitk
 import numpy as np
 from scipy.ndimage import rotate
-from pydicom_generate.dcm.dicom_loaders import load_dicom_series_pydicom
+from pydicom_generate.dcm.dcm_loaders import load_dicom_series_pydicom
 from regrid_3d import generate_slice_grid, generate_orthogonal_vectors, grid_resample_3d
 import matplotlib.pyplot as plt
 

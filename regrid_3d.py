@@ -1,5 +1,12 @@
-import numpy as np
+import time
 
+import numpy as np
+from math import sqrt
+
+from torch.backends.cuda import cuFFTPlanCache
+
+
+#region code to use ImageOrientationPatient to regrid "oblique" mr images, etc, to a "common" orthogonal grid for comparison
 def generate_position_matrix(slice):
     iop = np.array(slice.ImageOrientationPatient)
     ipp = np.array(slice.ImagePositionPatient)
@@ -16,112 +23,18 @@ def generate_position_matrix(slice):
                   ])
     return m, z_projection
 
-
 def generate_slice_grid(slices):
 
-    grida = np.zeros((slices[0].Rows, slices[0].Columns, len(slices), 3))
+    grid = np.zeros((slices[0].Rows, slices[0].Columns, len(slices), 3))
     for z, slice in enumerate(slices):
         m, z_projection = generate_position_matrix(slice)
 
-        for x in range(0, grida.shape[0]):
-            for y in range(0, grida.shape[1]):
+        for x in range(0, grid.shape[0]):
+            for y in range(0, grid.shape[1]):
                 point = np.dot(m, [x, y, z, 1])  # projection, 1])
-                grida[x, y, z] = point[0:3]
+                grid[x, y, z] = point[0:3]
 
-    for rotx in (0, 1, 2, 3):
-        for roty in (0, 1, 2, 3):
-            for rotz in (0, 1, 2, 3):
-                grid = np.rot90(grida, rotx, (0, 1))
-                grid = np.rot90(grid, roty, (0, 2))
-                grid = np.rot90(grid, rotz, (1, 2))
-                corners = [grid[0, 0, 0],
-                           grid[grid.shape[0] - 1, 0, 0],
-                           grid[grid.shape[0] - 1, grid.shape[1] - 1, 0],
-                           grid[0, grid.shape[1] - 1, 0, 0],
-                           grid[0, 0, grid.shape[2] - 1],
-                           grid[grid.shape[0] - 1, 0, grid.shape[2] - 1],
-                           grid[grid.shape[0] - 1, grid.shape[1] - 1, grid.shape[2] - 1],
-                           grid[0, grid.shape[1] - 1, grid.shape[2] - 1],
-                           ]
-
-                print(f"corner orientations for {rotx}, {roty}, {rotz}:")
-
-                print(min(np.min(corners[1]-corners[0]), np.min(corners[3] - corners[0]), np.min(corners[0] - corners[4])))
-                print(min(np.min(corners[0]-corners[1]), np.min(corners[2] - corners[1]), np.min(corners[1] - corners[5])))
-                print(min(np.min(corners[3]-corners[2]), np.min(corners[1] - corners[2]), np.min(corners[2] - corners[6])))
-                print(min(np.min(corners[2]-corners[3]), np.min(corners[0] - corners[3]), np.min(corners[3] - corners[7])))
-                print(min(np.min(corners[5]-corners[4]), np.min(corners[7] - corners[4]), np.min(corners[4] - corners[0])))
-                print(min(np.min(corners[4]-corners[5]), np.min(corners[6] - corners[5]), np.min(corners[5] - corners[1])))
-                print(min(np.min(corners[7]-corners[6]), np.min(corners[5] - corners[6]), np.min(corners[6] - corners[2])))
-                print(min(np.min(corners[6]-corners[7]), np.min(corners[4] - corners[7]), np.min(corners[7] - corners[3])))
-
-    exit()
-
-    # minimum value in each axis
-    minimum = [10000, 10000, 10000]
-    for c, corner in enumerate(corners):
-        # least value in each dimension
-        for d in [0, 1, 2]:
-            if corner[d] < minimum[d]:
-                minimum[d] = corner[d]
-    minimum = np.array(minimum)
-
-    distances = []
-    for c, corner in enumerate(corners):
-        # distance from minimum
-        dist_origin = distance_between(corner, minimum)
-        # print(c, corner, minimum, dist_origin)
-
-        distances.append({"corner": corner, "index": c, "dist_origin": dist_origin})
-
-    # take origin as closest to minimums
-    corner_origin = sorted(distances, key=lambda i: i['dist_origin'])[0]
-
-    origin_point = corner_origin['corner']
-    origin_index = corner_origin['index']
-
-    # generate all axes
-    gridyz0 = grid[:, 0, 0, :]
-    gridxz0 = grid[0, :, 0, :]
-    gridxy0 = grid[0, 0, :, :]
-    gridyzt = grid[:, grid.shape[1] - 1, grid.shape[2] - 1, :]
-    gridxzt = grid[grid.shape[0] - 1, :, grid.shape[2] - 1, :]
-    gridxyt = grid[grid.shape[0] - 1, grid.shape[1] - 1, :, :]
-
-    gridy0zt = grid[:, 0, grid.shape[2] - 1, :]
-    gridx0zt = grid[0, :, grid.shape[2] - 1, :]
-    gridx0yt = grid[0, grid.shape[0] - 1, :, :]
-    gridytz0 = grid[:, grid.shape[1] - 1, 0, :]
-    gridxtz0 = grid[grid.shape[0] - 1, :, 0, :]
-    gridxty0 = grid[grid.shape[0] - 1, 0, :, :]
-
-    orthogonal_corners = get_orthogonal_corners(origin_index)
-    oa1 = corners[orthogonal_corners[0]]
-    oa2 = corners[orthogonal_corners[1]]
-    oa3 = corners[orthogonal_corners[2]]
-    edge1 = None
-    edge2 = None
-    edge3 = None
-    for e, edge in enumerate([gridyz0, gridxz0, gridxy0, gridyzt, gridxzt, gridxyt,
-        gridy0zt, gridx0zt, gridx0yt, gridytz0, gridxtz0, gridxty0]):
-        if origin_point in edge:
-            if oa1 in edge and edge1 is None:
-                edge1 = edge
-                # print(e, "origin to oa1 edge found!")
-            elif oa2 in edge and edge2 is None:
-                edge2 = edge
-                # print(e, "origin to oa2 edge found!")
-            elif oa3 in edge and edge3 is None:
-                edge3 = edge
-                # print(e, "origin to oa3 edge found!")
-
-    print("original axes lengths: ", edge1[-1]-edge1[0], edge2[-1]-edge2[0], edge3[-1]-edge3[0])
-    edge1 = reverse_edge(edge1)
-    edge2 = reverse_edge(edge2)
-    edge3 = reverse_edge(edge3)
-    print("reversed axes lengths: ", edge1[-1]-edge1[0], edge2[-1]-edge2[0], edge3[-1]-edge3[0])
-    exit()
-    return origin_point, edge1, edge2, edge3
+    return grid
 
 def reverse_edge(edge):
     print("reverse_edge", edge.shape)
@@ -256,9 +169,9 @@ def generate_axis_vectors(vector_x, vector_y, vector_z, center):
 
 def generate_orthogonal_vectors(origin, size, spacing):
     print(origin, size, spacing)
-    for x in range(0, size[0]):
-        print(origin[0]+x*spacing[0], origin[1], origin[2])
-    exit()
+    # for x in range(0, size[0]):
+    #     print(origin[0]+x*spacing[0], origin[1], origin[2])
+    # exit()
     x_vector = [np.array([origin[0]+x*spacing[0], origin[1], origin[2]]) for x in range(0, size[0])]
     y_vector = [np.array([origin[0], origin[1]+y*spacing[1], origin[2]]) for y in range(0, size[1])]
     z_vector = [np.array([origin[0], origin[1], origin[2]+z*spacing[2]]) for z in range(0, size[2])]
@@ -276,8 +189,9 @@ def generate_orthogonal_vectors(origin, size, spacing):
 def print_error(msg: str):
     print(msg)
     exit()
+#endregion
 
-
+# region original image regridding algorithm translated from UW med physics matlab code requires regular grids
 def has_uniform_spacing(x: np.ndarray):
     # check to see if this axis is uniformly-spaced
     dx = x[1] - x[0]
@@ -376,12 +290,6 @@ def grid_resample_3d(x: np.ndarray,
     if not is_increasing(z):
         print_error('z must be a monotonically increasing vector.')
 
-
-    print("original grid: ", x[0], x[-1], x[-1]-x[0], len(x), y[0], y[-1], y[-1]-y[0], len(y), z[0], z[-1], z[-1]-z[0], len(z))
-    print("new grid: ", xp[0], xp[-1], xp[-1] - xp[0], len(xp), yp[0], yp[-1], yp[-1] - yp[0], len(yp), zp[0], zp[-1], zp[-1] - zp[0], len(zp))
-    print("original grid: ", (x[-1]-x[0])/len(x), (y[-1]-y[0])/len(y), (z[-1]-z[0])/len(z))
-    print("new grid: ", (xp[-1] - xp[0])/len(xp), (yp[-1] - yp[0])/len(yp), (zp[-1] - zp[0])/len(zp))
-    exit()
 
     # centers of first elements in each axis
     x0 = x[0]
@@ -497,3 +405,286 @@ def grid_resample_3d(x: np.ndarray,
                     volume_new[i_new, j_new, k_new] = val
 
     return volume_new
+
+# endregion, requires
+
+# region new image regridding algorithm for radiology "oblique" mr scans, etc, does not require regular grids
+# 202501 csk begin new grid interpolation algorithm for radiology "oblique" mr scans, etc
+
+
+def volume_value(volume: np.ndarray, point: np.ndarray, outside_value:float=0, use_minimum:bool=False)-> float:
+    """
+    Given a volume array and a point of indices into the array, return the volume value while catching
+    indices that are outside the array bounds
+
+    Parameters
+    ----------
+    volume: np.array
+        Values that make up the volume, must have same dimensions as point
+    point: np.array
+        Array indices for the value to get from volume, must have same dimensions as volume
+    outside_value: float, default 0
+        Value to use if point falls outside of the volume array
+    use_minimum: boolean, default False
+        Instead of given outside_value, use the minimum value of volume
+
+    Returns
+        A float value of the volume at the point
+    -------
+    """
+
+    # TODO: best way to extrapolate outside the volume?
+    if use_minimum:
+        outside_value = np.min(volume)
+
+    # allow passing possibly negative indices
+    if np.sum(np.where(point < 0, 1, 0)) > 0:
+        return outside_value
+
+    try:
+        value = volume
+        for p in point:
+             value = value[int(p)]
+        # if round(point[0]) == 51 and round(point[1]) == 51 and round(point[2]) == 12:
+        #     print(point, value, volume[round(point[0]), round(point[1]), round(point[2])])
+        #     exit()
+        ##print(volume.shape, point)
+        ##exit()
+        return value
+
+    except IndexError:
+        return outside_value
+
+def distance_from(point1, point2, include_direction=False):
+    """
+    Get the distance between two points, must both have same dimensions
+    # TODO: is this already done somewhere??
+
+    Parameters
+    ----------
+    point1: np.ndarray
+        A point of image coordinates
+    point2
+        A point of image coordinates
+    Returns
+        The image coordinate distance between the two points, with direction indicated by +/-
+    -------
+
+    """
+    dist = 0
+    mult = 1
+    for d1, d2 in zip(point1, point2):
+        dist += (d2 - d1)**2
+        if include_direction and d2 < d1:
+            mult = -1
+
+    return mult * sqrt(dist)
+
+def find_closest_point(points_volume, point2):
+    best_distance = 100000
+    best_point = np.array([-1, -1, -1])
+    for xx in range(points_volume.shape[0]):
+        for yy in range(points_volume.shape[1]):
+            for zz in range(points_volume.shape[2]):
+                point1 = points_volume[xx, yy, zz]
+                dist = distance_from(point1, point2)
+                if 0 < dist < best_distance:
+                    best_distance = dist
+                    best_point = np.array([xx, yy, zz])
+    print("find_closest_point", best_distance, best_point)
+    return best_point
+
+# axis that forms box around the new point
+def get_axis_points(points, i, j, k):
+    return np.array([
+        [[points[i, j, k], points[i+1, j, k], points[i, j+1, k], points[i, j, k+1]]]
+    ])
+
+
+def interpolate_point(new_point, closest_i, closest_j, closest_k, dx, dy, dz, points_volume, volume, mode='linear'):
+    t = (new_point[0] - points_volume[closest_i, closest_j, closest_k, 0])/dx
+    u = (new_point[1] - points_volume[closest_i, closest_j, closest_k, 1])/dy
+    v = (new_point[2] - points_volume[closest_i, closest_j, closest_k, 2])/dz
+
+    if mode == 'linear':
+        # linear interpolation
+        val = volume_value(volume, np.array([closest_i, closest_j, closest_k])) * (1 - t) * (1 - u) * (1 - v) + \
+              volume_value(volume, np.array([closest_i, closest_j, closest_k + 1])) * (1 - t) * (1 - u) * v + \
+              volume_value(volume, np.array([closest_i, closest_j + 1, closest_k + 1])) * (1 - t) * u * v + \
+              volume_value(volume, np.array([closest_i + 1, closest_j + 1, closest_k + 1])) * t * u * v + \
+              volume_value(volume, np.array([closest_i, closest_j + 1, closest_k])) * (1 - t) * u * (1 - v) + \
+              volume_value(volume, np.array([closest_i + 1, closest_j + 1, closest_k])) * t * u * (1 - v) + \
+              volume_value(volume, np.array([closest_i + 1, closest_j, closest_k + 1])) * t * (1 - u) * v + \
+              volume_value(volume, np.array([closest_i + 1, closest_j, closest_k])) * t * (1 - u) * (1 - v)
+
+    elif mode == 'nearest':
+        # nearest neighbor interpolation
+        if t >= 0.5:
+            closest_i = closest_i + 1
+        if u >= 0.5:
+            closest_j = closest_j + 1
+        if v >= 0.5:
+            closest_k = closest_k + 1
+
+        val = volume_value(volume, np.array([closest_i, closest_j, closest_k]))
+
+    else:
+        print_error('Unknown interpolation mode.  Must be either "linear" or "nearest".')
+
+    return val
+
+
+def find_local_delta(points, xi, yi, zi):
+    # if +1 does not exist in some dimension, use -1
+    # other index
+    xi2 = xi + 1
+    if xi2 >= points.shape[0]-1:
+        xi2 = xi - 1
+    yi2 = yi + 1
+    if yi2 >= points.shape[1]-1:
+        yi2 = yi - 1
+    zi2 = zi + 1
+    if zi2 >= points.shape[2]-1:
+        zi2 = zi - 1
+
+    point1 = points[xi, yi, zi]
+    point2 = points[xi2, yi, zi]
+    dx = np.abs(point2[0] - point1[0])
+
+    point1 = points[xi, yi, zi]
+    point2 = points[xi, yi2, zi]
+    dy = np.abs(point2[1] - point1[1])
+
+    point1 = points[xi, yi, zi]
+    point2 = points[xi, yi, zi2]
+    dz = np.abs(point2[2] - point1[2])
+
+    return dx, dy, dz
+
+
+def find_closest_index_for_point(volume, x, y, z, dx, dy, dz, ox, oy, oz):
+    # print("find_closest_index_for_point")
+    # print(x, y, z, dx, dy, dz, ox, oy, oz)
+    x = np.abs(x - ox)/dx
+    if x > volume.shape[0]-1:
+        x = volume.shape[0]-1
+    y = np.abs(y - oy)/dy
+    if y > volume.shape[1]-1:
+        y = volume.shape[1]-1
+    z = np.abs(z - oz)/dz
+    if z > volume.shape[2]-1:
+        z = volume.shape[2]-1
+
+    # if 19 < x < 20:
+    #     print(x, y, z)
+    return x, y, z
+
+
+def grid_resample_3d_new(points_volume: np.ndarray,
+                     volume: np.ndarray,
+                     points_new: np.ndarray,
+                     mode='linear'):
+    """
+    #GRIDRESAMPLE3D 3-D interpolation
+    #  fp = gridResample3D(x,y,z,f,xp,yp,zp) resamples the values of the
+    #  function fp at points on a 3-D rectilinear grid specified by the vectors
+    #  xp, yp, zp, based on the original function, f, which has points
+    #  specified by the vectors x, y, z.  The x, y, z vectors must be
+    #  monotonically increasing, but the vectors xp, yp, and zp do not.
+
+    #  fp = gridResample3D(...,mode) specifies an interpolation mode.  The
+    #  'mode' argument can be either 'linear' or 'nearest', which corresponds
+    #  to 3-D linear interpolation and nearest neighbor interpolation,
+    #  respectively.  The default interpolation mode is 'linear'.
+    #
+    #  For data defined on a simple Cartesian grid, this function is much
+    #  faster and more effective than interp3, which requires the user to input
+    #  a set of three 3D coordinate grids (one for each dimension), along with
+    #  the original data.  This wastes time and memory.
+    #
+    #  Ryan T Flynn, 6-27-07
+    """
+    if points_volume.ndim != 4 or volume.ndim != 3 or points_new.ndim != 4:
+        print_error(f'points_original {points_volume.ndim}, volume {volume.ndim}, points_new {points_new.ndim} must have proper dimensions.')
+
+    # check the size of the original data array against the original coordinate system
+    if (points_volume.shape[0] != volume.shape[0] or
+            points_volume.shape[1] != volume.shape[1] or
+            points_volume.shape[2] != volume.shape[2]):
+        print_error('points_original must have same dimensions as f')
+
+    if not isinstance(mode, str):
+        print_error('mode must be a character array')
+
+    # centers of first elements in each axis
+    x0 = points_volume[0, 0, 0, 0]
+    y0 = points_volume[0, 0, 0, 1]
+    z0 = points_volume[0, 0, 0, 2]
+
+    # change between points
+    dx = points_volume[1, 0, 0, 0] - points_volume[0, 0, 0, 0]
+    dy = points_volume[0, 1, 0, 1] - points_volume[0, 0, 0, 1]
+    dz = points_volume[0, 0, 1, 2] - points_volume[0, 0, 0, 2]
+
+    dx_new = points_new[1, 0, 0, 0] - points_new[0, 0, 0, 0]
+    dy_new = points_new[0, 1, 0, 1] - points_new[0, 0, 0, 1]
+    dz_new = points_new[0, 0, 1, 2] - points_new[0, 0, 0, 2]
+
+    minx = np.min(points_volume[0, 0, 0, 0])
+    miny = np.min(points_volume[0, 0, 0, 1])
+    minz = np.min(points_volume[0, 0, 0, 2])
+
+    minx_new = np.min(points_new[0, 0, 0, 0])
+    miny_new = np.min(points_new[0, 0, 0, 1])
+    minz_new = np.min(points_new[0, 0, 0, 2])
+
+    diff = points_volume - points_new
+
+    # set up the output grid
+    volume_new = np.zeros((points_new.shape[0:3]))
+
+    # iterate through all new points z, y, x, check if interpolation is not needed, else interpolate
+    tol = 1e-3
+    interpolated_count = 0
+    not_interpolated_count = 0
+    for k_new in range(0, points_new.shape[2]):
+        current_origin = points_new[0, 0, k_new]
+        print(points_volume[0, 0, k_new], current_origin)
+        print("pct done", k_new/points_new.shape[2], points_volume[0, 0, k_new], points_new[0, 0, k_new], current_origin[0], current_origin[1], current_origin[2])
+        for j_new in range(0, points_new.shape[1]):
+            for i_new in range(0, points_new.shape[0]):
+                point = points_volume[i_new, j_new, k_new]
+                i_new2, j_new2, k_new2 = find_closest_index_for_point(volume, point[0], point[1], point[2], dx, dy, dz, current_origin[0], current_origin[1], current_origin[2])
+                if i_new != i_new2 or j_new != j_new2 or k_new != k_new2:
+                    print("diff", i_new, i_new2, j_new, j_new, k_new, k_new2)
+                continue
+                # t1 = time.time()
+                # print(i_new, j_new, k_new)
+                point_new = points_new[i_new, j_new, k_new]
+                dxn, dyn, dzn = find_local_delta(points_new, i_new, j_new, k_new)
+                i_old, j_old, k_old = find_closest_index_for_point(volume, point_new[0], point_new[1], point_new[2], dxn, dyn, dzn, current_origin[0], current_origin[1], current_origin[2])
+                i_old = round(i_old)
+                j_old = round(j_old)
+                k_old = round(k_old)
+
+
+                # t2 = time.time()
+                if i_new == i_old and j_new == j_old and k_new == k_old:
+                    # same voxel position in both volumes, so no interpolation needed
+                    volume_new[i_new, j_new, k_new] = volume_value(volume, np.array([i_old, j_old, k_old]))
+                    # print(i_new, j_new, k_new, "no interpolation!", t2-t1)
+                    not_interpolated_count += 1
+                else:
+                    # interpolate the new point onto the old grid
+                    # t3 = time.time()
+                    best_point = [i_old, j_old, k_old]
+                    # print(i_old, j_old, k_old, int(i_old), int(j_old), int(k_old))
+                    # t4 = time.time()
+                    val = interpolate_point(points_new[i_new, j_new, k_new], best_point[0], best_point[1], best_point[2], dxn, dyn, dzn, points_volume, volume, mode)
+                    volume_new[i_new, j_new, k_new] = val
+                    interpolated_count += 1
+                    # t5 = time.time()
+                    # print(i_new, j_new, k_new, "interpolated", t2-t1, t3-t2, t4-t3, t5-t4)
+    print(f"interpolated_count={interpolated_count}, not_interpolated_count={not_interpolated_count}. total_count={volume_new.shape[0]*volume_new.shape[1]*volume_new.shape[2]}")
+    return volume_new
+# endregion
