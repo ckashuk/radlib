@@ -10,10 +10,10 @@ from itertools import groupby
 import sys
 from typing import Dict
 
-from pydicom_generate.dcm.dicom_standard_validation.spec_reader.condition import Condition, ConditionType, ConditionOperator
-from pydicom_generate.dcm.dicom_standard_validation.spec_reader.condition_parser import ConditionParser
-from pydicom_generate.dcm.dicom_standard_validation.spec_reader.enum_parser import EnumParser
-from pydicom_generate.dcm.dicom_standard_validation.spec_reader.spec_reader import SpecReader, SpecReaderLookupError, \
+from dcm.dicom_standard_validation.spec_reader.condition import Condition, ConditionType, ConditionOperator
+from dcm.dicom_standard_validation.spec_reader.condition_parser import ConditionParser
+from dcm.dicom_standard_validation.spec_reader.enum_parser import EnumParser
+from dcm.dicom_standard_validation.spec_reader.spec_reader import SpecReader, SpecReaderLookupError, \
     SpecReaderParseError
 
 # Some conditions from the spec are hard to parse with a few general rules.

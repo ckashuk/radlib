@@ -2,7 +2,7 @@ import re
 from collections import OrderedDict
 from typing import Dict, Tuple, Optional, List
 
-from pydicom_generate.dcm.dicom_standard_validation.spec_reader.condition import ConditionOperator, Condition, ConditionType, \
+from dcm.dicom_standard_validation.spec_reader.condition import ConditionOperator, Condition, ConditionType, \
     ValuesType
 
 

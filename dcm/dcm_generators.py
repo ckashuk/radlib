@@ -10,12 +10,9 @@ import tempfile
 
 import SimpleITK as sitk
 
-from pydicom import FileMetaDataset
-from pydicom.pixels.decoders import JPEGExtended12BitDecoder
-
-from pydicom_generate.dcm import check_for_valid_modality, dicom_modalities
-from pydicom_generate.dcm.dicom_standard_validation.spec_reader.edition_reader import EditionReader
-from pydicom_generate.dcm.dicom_standard_validation.validator.dicom_file_validator import DicomFileValidator
+from dcm import check_for_valid_modality, dicom_modalities
+from dcm.dicom_standard_validation.spec_reader.edition_reader import EditionReader
+from dcm.dicom_standard_validation.validator.dicom_file_validator import DicomFileValidator
 
 
 def generate_valid_template_dcm(modality: str) -> pydicom.Dataset:
@@ -79,11 +76,8 @@ def generate_dcm_pydicom(modality: str,
 
             ds.Rows = pixel_data.shape[0]
             ds.Columns = pixel_data.shape[1]
-            # ds.PixelData = slice_data.tobytes()
             ds.file_meta.TransferSyntaxUID = '1.2.840.10008.1.2.4.57'
             ds.PixelData = pydicom.encaps.encapsulate([slice_data.tobytes()])
-            # ds['PixelData'].is_undefined_length = True
-            # ds.PhotometricInterpretation = "YBR_FULL_422"
             ds.ImagePositionPatient = origin
             ds.ImageOrientationPatient = direction
             ds.SliceLocation = float(origin[2])
@@ -148,78 +142,6 @@ def validate_dcm(ds: pydicom.Dataset):
     temp_file.close()
     return error_nr
 
-
-def generate_grid(img):
-    grid = np.zeros((img.GetSize()[0], img.GetSize()[1],  img.GetSize()[2], 3))
-
-    for kk in range(0, grid.shape[2]):
-        for jj in range(0, grid.shape[1]):
-            for ii in range(0, grid.shape[0]):
-                new_point = img.TransformIndexToPhysicalPoint((ii, jj, kk))
-                grid[ii, jj, kk] = new_point
-
-    return grid
-
-def generate_projection2(img):
-    # TODO: 202502 csk can we do this for x and y too??
-    extent_z = img.TransformIndexToPhysicalPoint((0, 0, img.GetSize()[2]-1))[2] - img.TransformIndexToPhysicalPoint((0, 0, 0))[2]
-    index_z = int((extent_z-img.GetOrigin()[2])/img.GetSpacing()[2])
-
-    new_volume = np.zeros((img.GetSize()[0], img.GetSize()[1], index_z))
-
-    for kk in range(0, new_volume.shape[2]):
-        zz = img.GetOrigin()[2] + kk * img.GetSpacing()[2]
-        for jj in range(0, new_volume.shape[1]):
-            yy = img.GetOrigin()[1] + jj * img.GetSpacing()[1]
-            for ii in range(0, new_volume.shape[0]):
-                xx = img.GetOrigin()[0] + ii * img.GetSpacing()[0]
-                new_point = img.TransformPhysicalPointToIndex((xx, yy, zz))
-                try:
-                    new_value = img.EvaluateAtContinuousIndex(new_point)
-                except Exception as e:
-                    new_value = 0
-
-                new_volume[ii, jj, kk] = new_value
-
-    new_volume = np.swapaxes(new_volume, 0, 2)
-    return new_volume
-
-def generate_projection(img, grid=None):
-    if grid is None:
-        # TODO: 202502 csk can we do this for x and y too??
-        extent_z = img.TransformIndexToPhysicalPoint((0, 0, img.GetSize()[2]-1))[2] - img.TransformIndexToPhysicalPoint((0, 0, 0))[2]
-        index_z = int((extent_z-img.GetOrigin()[2])/img.GetSpacing()[2])
-        new_volume = np.zeros((img.GetSize()[0], img.GetSize()[1], index_z), dtype=np.int16)
-
-        for kk in range(0, new_volume.shape[2]):
-            zz = img.GetOrigin()[2] + kk * img.GetSpacing()[2]
-            for jj in range(0, new_volume.shape[1]):
-                yy = img.GetOrigin()[1] + jj * img.GetSpacing()[1]
-                for ii in range(0, new_volume.shape[0]):
-                    xx = img.GetOrigin()[0] + ii * img.GetSpacing()[0]
-                    new_point = img.TransformPhysicalPointToIndex((xx, yy, zz))
-                    try:
-                        new_value = img.EvaluateAtContinuousIndex(new_point)
-                    except Exception as e:
-                        new_value = 0
-
-                    new_volume[ii, jj, kk] = new_value
-
-    else:
-        new_volume = np.zeros(grid.shape[0:3], dtype=np.int16)
-
-        for kk in range(0, grid.shape[2]):
-            for jj in range(0, grid.shape[1]):
-                for ii in range(0, grid.shape[0]):
-                    new_point = img.TransformPhysicalPointToIndex(grid[ii, jj, kk])
-                    try:
-                        new_value = img.EvaluateAtContinuousIndex(new_point)
-                    except Exception as e:
-                        new_value = 0
-                    new_volume[ii, jj, kk] = new_value
-
-    new_volume = np.swapaxes(new_volume, 0, 2)
-    return new_volume
 
 def writeSlices(data_directory, series_tag_values, new_img, i):
 

@@ -1,8 +1,8 @@
-from pydicom_generate.dcm.pydicom_codify.pydicom_generated_rtss_master import generate_rtss_dcm
-from pydicom_generate.dcm.pydicom_codify.pydicom_generated_ct_master import generate_ct_dcm
-from pydicom_generate.dcm.pydicom_codify.pydicom_generated_mr_master import generate_mr_dcm
-from pydicom_generate.dcm.pydicom_codify.pydicom_generated_pt_master import generate_pt_dcm
-from pydicom_generate.dcm.pydicom_codify.pydicom_generated_sc_master import generate_sc_dcm
+from dcm.pydicom_codify.pydicom_generated_rtss_master import generate_rtss_dcm
+from dcm.pydicom_codify.pydicom_generated_ct_master import generate_ct_dcm
+from dcm.pydicom_codify.pydicom_generated_mr_master import generate_mr_dcm
+from dcm.pydicom_codify.pydicom_generated_pt_master import generate_pt_dcm
+from dcm.pydicom_codify.pydicom_generated_sc_master import generate_sc_dcm
 
 # valid modalities that this code knows about
 dicom_modalities = {

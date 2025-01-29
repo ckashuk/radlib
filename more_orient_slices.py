@@ -1,10 +1,9 @@
 import numpy as np
-import scipy
 from matplotlib import pyplot as plt
 
-from pydicom_generate.dcm.dcm_loaders import load_dicom_series_pydicom, load_dicom_series_sitk
-from regrid_3d import generate_slice_grid, generate_orthogonal_vectors, grid_resample_3d_new
-import SimpleITK as sitk
+from dcm.dcm_loaders import load_dicom_series_pydicom
+from regrid_3d import generate_slice_grid, grid_resample_3d_new
+
 dcm_root1 = 'H:/data/A18GEProstate_00007_test/3 - Obl Ax T2.dicom'
 # dcm_root2 = 'H:/data/A18GEProstate_00007_test/6 - Obl Cor T2.dicom'
 

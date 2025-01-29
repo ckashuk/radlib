@@ -3,7 +3,7 @@ from typing import Callable, Optional, Dict, List, Any
 
 from pydicom.valuerep import VR, INT_VR, STR_VR
 
-from pydicom_generate.dcm.dicom_standard_validation.spec_reader.condition import ValuesType
+from dcm.dicom_standard_validation.spec_reader.condition import ValuesType
 
 try:
     import lxml.etree as ElementTree

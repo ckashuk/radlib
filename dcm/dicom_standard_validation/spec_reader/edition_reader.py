@@ -8,12 +8,12 @@ from abc import ABC
 from pathlib import Path
 from urllib.request import urlretrieve
 
-import pydicom_generate
-from pydicom_generate.dcm.dicom_standard_validation.spec_reader.part3_reader import Part3Reader
-from pydicom_generate.dcm.dicom_standard_validation.spec_reader.part4_reader import Part4Reader
-from pydicom_generate.dcm.dicom_standard_validation.spec_reader.part6_reader import Part6Reader
-from pydicom_generate.dcm.dicom_standard_validation.spec_reader.serializer import DefinitionEncoder
-from pydicom_generate.dcm.dicom_standard_validation.validator.iod_validator import DicomInfo
+import dcm
+from dcm.dicom_standard_validation.spec_reader.part3_reader import Part3Reader
+from dcm.dicom_standard_validation.spec_reader.part4_reader import Part4Reader
+from dcm.dicom_standard_validation.spec_reader.part6_reader import Part6Reader
+from dcm.dicom_standard_validation.spec_reader.serializer import DefinitionEncoder
+from dcm.dicom_standard_validation.validator.iod_validator import DicomInfo
 
 
 class EditionParser(html_parser.HTMLParser, ABC):
@@ -251,10 +251,10 @@ class EditionReader:
         if not version_path.exists():
             return False
         with open(version_path, encoding="utf8") as f:
-            return f.read() >= pydicom_generate.dcm.dicom_validator.__version__
+            return f.read() >= dcm.dicom_validator.__version__
 
     @staticmethod
     def write_current_version(json_path):
         version_path = json_path / "version"
         with open(version_path, "w", encoding="utf8") as f:
-            f.write(pydicom_generate.dcm.dicom_validator.__version__)
+            f.write(dcm.dicom_validator.__version__)

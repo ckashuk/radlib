@@ -1,6 +1,6 @@
 import json
 
-from pydicom_generate.dcm.dicom_standard_validation.spec_reader.condition import Condition
+from dcm.dicom_standard_validation.spec_reader.condition import Condition
 
 
 class DefinitionEncoder(json.JSONEncoder):
