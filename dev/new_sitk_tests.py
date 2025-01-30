@@ -13,18 +13,23 @@ mr_dcm_root = f'{dcm_root}/17009_pyl17/PET1/Obl Axial T2 Prostate/dicom'
 pet, _, _ = load_dicom_series_sitk(pet_dcm_root)
 mr, _, _ = load_dicom_series_sitk(mr_dcm_root)
 print("loaded!")
-pet_grid = generate_grid(mr)
+pet_grid = generate_grid(pet)
+print(pet_grid.shape)
+# pet_grid = pet_grid[100:105, 100:105, 40:42]
+
 print("gridded!")
-# proj0 = generate_regridded_volume(mr, pet_grid)
-# print("projected0!", np.min(proj0), np.mean(proj0), np.max(proj0))
 proj1 = generate_regridded_volume(mr, pet_grid, mode=sitk.sitkLinear)
 print("projected1!", np.min(proj1), np.mean(proj1), np.max(proj1))
 proj2 = generate_regridded_volume(mr, pet_grid, mode=sitk.sitkNearestNeighbor)
 print("projected2!", np.min(proj2), np.mean(proj2), np.max(proj2))
-# proj3 = generate_regridded_volume(mr, pet_grid, mode=sitk.sitkBSplineResampler)
-# print("projected3!", np.min(proj3), np.mean(proj3), np.max(proj3))
+proj3 = generate_regridded_volume(mr, pet_grid, mode=sitk.sitkBSplineResampler)
+print("projected3!", np.min(proj3), np.mean(proj3), np.max(proj3))
 
-plt.plot(proj1[:, :, :, :], proj2[:, :, :, :])
+plt.scatter(proj1[:, :, :].flatten(), proj2[:, :, :].flatten(), marker='o', s=4, color='red')
+plt.scatter(proj1[:, :, :].flatten(), proj3[:, :, :].flatten(), marker='o', s=4, color='green')
+# plt.scatter(proj2[:, :, :].flatten(), proj3[:, :, :].flatten(), marker='o', s=4, color='blue')
+
+
 plt.show()
 
 """

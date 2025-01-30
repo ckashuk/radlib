@@ -98,7 +98,6 @@ def generate_regridded_volume(img:sitk.Image,
 
     # "force" origin + index * spacing when making orthogonal grid,
     index_to_physical = lambda index, origin, spacing: origin + index * spacing
-    print("generate_regridded_volume", mode)
 
     if grid is None:
         # generate an orthogonal projection overlaying the space of the image's grid
@@ -123,7 +122,6 @@ def generate_regridded_volume(img:sitk.Image,
                     # convert physical point of grid to index point in new image space
                     # use continuous index to allow interpolation
                     new_point = img.TransformPhysicalPointToContinuousIndex((xx, yy, zz))
-
                     # evaluate the volume value at the new grid position
                     # catch index outside of grid and zero out those values
                     # TODO: csk 202601 break this out into separate function? seemed to be performance hit
@@ -141,7 +139,7 @@ def generate_regridded_volume(img:sitk.Image,
         for kk in range(0, grid.shape[2]):
             for jj in range(0, grid.shape[1]):
                 for ii in range(0, grid.shape[0]):
-                    new_point = img.TransformPhysicalPointToIndex(grid[ii, jj, kk])
+                    new_point = img.TransformPhysicalPointToContinuousIndex(grid[ii, jj, kk])
                     try:
                         new_value = evaluate_at_continuous_index_wrapper(img, new_point, interp=mode)
                     except Exception as e:
