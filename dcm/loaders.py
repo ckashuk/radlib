@@ -1,8 +1,10 @@
-import pydicom
-import numpy as np
-import matplotlib.pyplot as plt
 import glob
+import matplotlib.pyplot as plt
+import numpy as np
+import pydicom
 import SimpleITK as sitk
+import tempfile
+from zipfile import ZipFile
 
 # load the DICOM files
 # from https://pydicom.github.io/pydicom/stable/auto_examples/image_processing/reslice.html#sphx-glr-auto-examples-image-processing-reslice-py
@@ -82,6 +84,27 @@ def load_dicom_series_sitk(dicom_root, debug=False):
 
     return image_sitk, img3d, metadata
 
+
+def load_dicom_zip_sitk(zip_path, debug=False):
+    zipdir = tempfile.gettempdir()
+    with ZipFile(zip_path) as zip:
+        zipdir = tempfile.TemporaryDirectory()
+        with zipdir as tempdir:
+            zip.extractall(tempdir)
+            dcm_paths = glob.glob(f'{tempdir}/*/dicom/*.dcm')
+            reader = sitk.ImageSeriesReader()
+            reader.SetFileNames(dcm_paths)
+            image_sitk = reader.Execute()
+
+        # TODO: this is mainly for comparisons
+        img3d = sitk.GetArrayFromImage(image_sitk)
+        img3d = np.transpose(img3d, (1, 2, 0))
+        metadata={'spacing': image_sitk.GetSpacing(),
+                  'origin': image_sitk.GetOrigin(),
+                  'direction': image_sitk.GetDirection(),
+                  'size': image_sitk.GetSize()}
+
+    return image_sitk, img3d, metadata
 
 def plot_orthagonal_slices(img3d, metadata):
     # plot 3 orthogonal slices

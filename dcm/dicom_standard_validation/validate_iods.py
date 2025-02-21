@@ -3,8 +3,8 @@ import logging
 from pathlib import Path
 import sys
 
-from dicom_validator.spec_reader.edition_reader import EditionReader
-from dicom_validator.validator.dicom_file_validator import DicomFileValidator
+from spec_reader.edition_reader import EditionReader
+from validator.dicom_file_validator import DicomFileValidator
 
 
 def validate(args, base_path):
