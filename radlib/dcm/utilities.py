@@ -24,8 +24,6 @@ sitk_dicom_tags = {
     "SliceLocation": "0020|1041",
     "PixelSpacing": "0028|0030",
     "SeriesDescription": "0008|103e",
-
-
 }
 
 def get_sitk_dicom_tag(image, tag_name):

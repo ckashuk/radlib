@@ -157,5 +157,3 @@ def get_segments_by_tag(tag: str):
     return segments
 
 # def combine_ts_segments(ts_folder, ts_output_name=None):
-
-

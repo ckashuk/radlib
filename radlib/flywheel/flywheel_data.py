@@ -49,5 +49,3 @@ def load_image_from_flywheel(fw_client, group_label, project_label, subject_labe
     sitk.WriteImage(tmp, img_path)
 
     return sitk.ReadImage(img_path)
-
-

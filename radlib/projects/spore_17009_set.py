@@ -274,5 +274,3 @@ def update_dicom_tags_for_mr_instance(mr_dicom, reference_dicom, series_id=pydic
     # test
     set_sitk_dicom_tag(mr_dicom, "ImageOrientationPatient", get_sitk_dicom_tag(reference_dicom, "ImageOrientationPatient"))
     return mr_dicom
-
-# def open_svs_file(path):
