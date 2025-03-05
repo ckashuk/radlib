@@ -1,12 +1,12 @@
-from radlib import flywheel
+import flywheel
 
 
 def uw_client():
-    return flywheel.Client('wisc.flywheel.io:djEELpf52L5U5_Y21mzsVaSZ15uDpNOmrY24OPbXqp6GLGGACWyxmSZSA',
+    return flywheel.Client('wisc.fw.io:djEELpf52L5U5_Y21mzsVaSZ15uDpNOmrY24OPbXqp6GLGGACWyxmSZSA',
                            request_timeout=1000)
 
 def uwhealth_client():
-    return flywheel.Client('flywheel.uwhealth.org:djE9DZkdxeoW0lxmsQNsX-gdROBiu4lygzKEeR9TVrWCMBZaeAWgN0heQ',
+    return flywheel.Client('fw.uwhealth.org:djE9DZkdxeoW0lxmsQNsX-gdROBiu4lygzKEeR9TVrWCMBZaeAWgN0heQ',
                            request_timeout=1000)
 
 def uwhealthaz_client():

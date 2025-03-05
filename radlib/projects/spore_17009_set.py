@@ -9,7 +9,7 @@ import os
 
 from radlib.dcm.loaders import load_dicom_series_sitk
 from radlib.dcm.utilities import set_sitk_dicom_tag, get_sitk_dicom_tag
-from radlib.flywheel.flywheel_clients import uwhealth_client
+from radlib.fw.flywheel_clients import uwhealth_client
 
 # Ignore all warnings for now
 sitk.ProcessObject_SetGlobalWarningDisplay(False)

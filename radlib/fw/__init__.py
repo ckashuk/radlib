@@ -1,8 +1,4 @@
-from radlib.dcm.pydicom_codify.pydicom_generated_rtss_master import generate_rtss_dcm
-from radlib.dcm.pydicom_codify.pydicom_generated_ct_master import generate_ct_dcm
-from radlib.dcm.pydicom_codify.pydicom_generated_mr_master import generate_mr_dcm
-from radlib.dcm.pydicom_codify.pydicom_generated_pt_master import generate_pt_dcm
-from radlib.dcm.pydicom_codify.pydicom_generated_sc_master import generate_sc_dcm
+from dcm import generate_ct_dcm, generate_pt_dcm, generate_mr_dcm, generate_rtss_dcm, generate_sc_dcm
 
 # valid modalities that this code knows about
 dicom_modalities = {

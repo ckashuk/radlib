@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 
 
-dcm_root1 = '/Users/carlkashuk/Downloads/flywheel/ProstateSPOREDemo/SUBJECTS/57/SESSIONS/03-19-05 9_59 AM/ACQUISITIONS/Recon 2_ WB CT SLICES/FILES/Recon 2_ WB CT SLICES'
+dcm_root1 = '/Users/carlkashuk/Downloads/fw/ProstateSPOREDemo/SUBJECTS/57/SESSIONS/03-19-05 9_59 AM/ACQUISITIONS/Recon 2_ WB CT SLICES/FILES/Recon 2_ WB CT SLICES'
 dcm_root2 = '/Users/carlkashuk/Downloads/4 - TOP SAG SSFSE.dicom'
 
 # slices1_pd, img1_pd, metadata1_pd = load_dicom_series_pydicom(dcm_root1)

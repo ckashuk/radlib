@@ -37,7 +37,7 @@ def load_image_from_flywheel(fw_client, group_label, project_label, subject_labe
     # get acquisition
     ack = fw_client.resolve(f'{group_label}/{project_label}/{subject_label}/{series_label}/{ack_label}').path[-1]
 
-    # download image from flywheel to temp folder
+    # download image from fw to temp folder
     imgdir = tempfile.gettempdir()
     img_path = f'{imgdir}/{image_name}'
     ack.download_file(image_name, img_path)
