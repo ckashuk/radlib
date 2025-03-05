@@ -3,8 +3,7 @@ import unittest
 import SimpleITK as sitk
 import numpy as np
 
-from dcm.regridder import generate_regridded_image, generate_grid, generate_regridded_volume, \
-    evaluate_at_continuous_index_wrapper
+from radlib.dcm import generate_grid, evaluate_at_continuous_index_wrapper
 
 """
 tests for image regridder functionality

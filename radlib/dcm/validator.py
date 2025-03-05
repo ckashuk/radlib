@@ -1,7 +1,7 @@
 from dicom_standard_validation.spec_reader.edition_reader import EditionReader
 from pathlib import Path
 
-from dcm import check_for_valid_modality, dicom_modalities
+from radlib.dcm import check_for_valid_modality, dicom_modalities
 
 def get_tag_id_key(tag_id):
     tag_id_pair = tag_id.replace('(', '0x').replace(',', ',0x').replace(')', '').split(',')

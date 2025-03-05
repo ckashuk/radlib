@@ -1,10 +1,9 @@
-import glob
 import numpy as np
 import SimpleITK as sitk
 from matplotlib import pyplot as plt
 
-from dcm.loaders import load_dicom_series_sitk
-from dcm.regridder import generate_regridded_image, generate_grid, generate_regridded_volume
+from radlib.dcm.loaders import load_dicom_series_sitk
+from radlib.dcm import generate_grid, generate_regridded_volume
 
 dcm_root = '//onfnas01.uwhis.hosp.wisc.edu/radiology/Groups/GarrettGroup/Research/ProstateSPORE/DODDatasetComplete/CleanedProject/prosspore/DODProjectRead'
 pet_dcm_root = f'{dcm_root}/17009_pyl17/PET1/PET AC Prostate/dicom'

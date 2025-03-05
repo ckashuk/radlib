@@ -5,7 +5,7 @@ import sys
 from pydicom import config, dcmread
 from pydicom.errors import InvalidDicomError
 
-from dcm.dicom_standard_validation.validator.iod_validator import IODValidator
+from radlib.dcm.dicom_standard_validation.validator.iod_validator import IODValidator
 
 
 class DicomFileValidator:

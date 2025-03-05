@@ -1,10 +1,8 @@
-import SimpleITK as sitk
-import numpy as np
 import glob
 import nrrd
 import pydicom
 import os
-from dcm.converters import nifti_to_nrrd_file, nrrd_to_dicomrt_file, nrrd_to_dicomrt
+from radlib.dcm.converters import nifti_to_nrrd_file, nrrd_to_dicomrt
 
 # seg_nii_path= 'H:/data/SPORE_P11_test/segmentations (5)/prostate.nii.gz'
 seg_nii_path='//onfnas01.uwhis.hosp.wisc.edu/radiology/Groups/GarrettGroup/Users/Carl/segmentations/P01_obl_regrid_seg/prostate.nii.gz'

@@ -1,13 +1,13 @@
-from dcm import DicomModalityException
+from radlib.dcm import DicomModalityException
 import pydicom as pd
 import unittest
 
-from dcm.generators import generate_valid_template_dcm
+from radlib.dcm import generate_valid_template_dcm
 
-ct_reference_dcm_path = '../dcm/dicom_samples/1.2.826.0.1.3680043.2.629.20190306.10527514967919552016108815494.CT.dcm'
-pt_reference_dcm_path = '../dcm/dicom_samples/1.2.826.0.1.3680043.2.629.20190306.10034577425707046841670623789.PT.dcm'
-mr_reference_dcm_path = '../dcm/dicom_samples/01.dcm'
-rtss_reference_dcm_path = '../dcm/dicom_samples/rtss.dcm'
+ct_reference_dcm_path = '../radlib/dcm/dicom_samples/1.2.826.0.1.3680043.2.629.20190306.10527514967919552016108815494.CT.dcm'
+pt_reference_dcm_path = '../radlib/dcm/dicom_samples/1.2.826.0.1.3680043.2.629.20190306.10034577425707046841670623789.PT.dcm'
+mr_reference_dcm_path = '../radlib/dcm/dicom_samples/01.dcm'
+rtss_reference_dcm_path = '../radlib/dcm/dicom_samples/rtss.dcm'
 
 class TestPydicomGenerate(unittest.TestCase):
     def setUp(self):

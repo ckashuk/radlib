@@ -8,12 +8,12 @@ from abc import ABC
 from pathlib import Path
 from urllib.request import urlretrieve
 
-import dcm
-from dcm.dicom_standard_validation.spec_reader.part3_reader import Part3Reader
-from dcm.dicom_standard_validation.spec_reader.part4_reader import Part4Reader
-from dcm.dicom_standard_validation.spec_reader.part6_reader import Part6Reader
-from dcm.dicom_standard_validation.spec_reader.serializer import DefinitionEncoder
-from dcm.dicom_standard_validation.validator.iod_validator import DicomInfo
+from radlib import dcm
+from radlib.dcm.dicom_standard_validation.spec_reader.part3_reader import Part3Reader
+from radlib.dcm.dicom_standard_validation.spec_reader.part4_reader import Part4Reader
+from radlib.dcm.dicom_standard_validation.spec_reader.part6_reader import Part6Reader
+from radlib.dcm.dicom_standard_validation.spec_reader.serializer import DefinitionEncoder
+from radlib.dcm.dicom_standard_validation.validator.iod_validator import DicomInfo
 
 
 class EditionParser(html_parser.HTMLParser, ABC):
