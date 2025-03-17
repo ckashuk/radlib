@@ -1,6 +1,6 @@
 from flywheel.client import Client as flywheel_client
 
-from fw.flywheel_data import load_image_from_local_path, load_image_from_flywheel
+from radlib.fw.flywheel_data import load_image_from_local_path, load_image_from_flywheel
 
 
 def uwhealthaz_client():
