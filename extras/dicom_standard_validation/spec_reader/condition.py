@@ -1,7 +1,7 @@
 import enum
 from typing import Optional, List, Dict, Any, Union
 
-from radlib.dcm.dicom_standard_validation.tag_tools import tag_name_from_id
+from extras.dicom_standard_validation.tag_tools import tag_name_from_id
 
 ValuesType = List[Union[str, int]]
 

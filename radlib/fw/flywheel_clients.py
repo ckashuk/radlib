@@ -12,4 +12,3 @@ def uwhealth_client():
 def uwhealthaz_client():
     return flywheel.Client('flywheelaz.uwhealth.org:djESGL039D5xmVq81ZknQS4tT2nEg2IYNcd3z-ubX_3wzwCyLaUJ1WeAg',
                            request_timeout=1000)
-

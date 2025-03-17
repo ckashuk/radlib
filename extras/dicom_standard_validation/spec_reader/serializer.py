@@ -1,6 +1,6 @@
 import json
 
-from radlib.dcm.dicom_standard_validation.spec_reader.condition import Condition
+from extras.dicom_standard_validation.spec_reader.condition import Condition
 
 
 class DefinitionEncoder(json.JSONEncoder):

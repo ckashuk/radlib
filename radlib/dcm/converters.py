@@ -15,7 +15,7 @@ from scipy import ndimage
 import SimpleITK as SimpleITK
 from skimage import measure
 
-from radlib.dcm import contours
+from dcm import contours
 
 
 class InvalidDicomDateFormatException(Exception):

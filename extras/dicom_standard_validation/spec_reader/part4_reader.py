@@ -3,7 +3,7 @@ Chapter4Reader collects SOP Class Information information for specific
 Storage SOP Classes.
 The information is taken from PS3.4 in docbook format as provided by ACR NEMA.
 """
-from radlib.dcm.dicom_standard_validation.spec_reader.spec_reader import SpecReader, SpecReaderLookupError, \
+from extras.dicom_standard_validation.spec_reader.spec_reader import SpecReader, SpecReaderLookupError, \
     SpecReaderParseError
 
 

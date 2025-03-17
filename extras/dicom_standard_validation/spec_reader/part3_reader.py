@@ -10,10 +10,10 @@ from itertools import groupby
 import sys
 from typing import Dict
 
-from radlib.dcm.dicom_standard_validation.spec_reader.condition import Condition, ConditionType, ConditionOperator
-from radlib.dcm.dicom_standard_validation.spec_reader.condition_parser import ConditionParser
-from radlib.dcm.dicom_standard_validation.spec_reader.enum_parser import EnumParser
-from radlib.dcm.dicom_standard_validation.spec_reader.spec_reader import SpecReader, SpecReaderLookupError, \
+from extras.dicom_standard_validation.spec_reader.condition import Condition, ConditionType, ConditionOperator
+from extras.dicom_standard_validation.spec_reader.condition_parser import ConditionParser
+from extras.dicom_standard_validation.spec_reader.enum_parser import EnumParser
+from extras.dicom_standard_validation.spec_reader.spec_reader import SpecReader, SpecReaderLookupError, \
     SpecReaderParseError
 
 # Some conditions from the spec are hard to parse with a few general rules.
