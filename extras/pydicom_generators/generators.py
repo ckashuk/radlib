@@ -11,8 +11,8 @@ import tempfile
 import SimpleITK as sitk
 
 from radlib.dcm import check_for_valid_modality, dicom_modalities
-from radlib.dcm.dicom_standard_validation.spec_reader.edition_reader import EditionReader
-from radlib.dcm.dicom_standard_validation.validator.dicom_file_validator import DicomFileValidator
+from extras.dicom_standard_validation.spec_reader.edition_reader import EditionReader
+from extras.dicom_standard_validation.validator import DicomFileValidator
 
 
 def generate_valid_template_dcm(modality: str) -> pydicom.Dataset:

@@ -55,9 +55,11 @@ def load_dicom_series_from_slices(slices):
     # fill 3D array with the images from the files
     for i, s in enumerate(slices):
         img2d = s.pixel_array
-        # csk add slope/intercept handling
+        # add slope/intercept handling
         if s.get('RescaleSlope') is not None:
             img2d = np.add(np.multiply(img2d, s.RescaleSlope), s.RescaleIntercept)
+        # add suv
+        i
         img3d[:, :, i] = img2d
 
     img3d = np.array(img3d)

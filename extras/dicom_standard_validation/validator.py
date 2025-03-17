@@ -1,4 +1,4 @@
-from dicom_standard_validation.spec_reader.edition_reader import EditionReader
+from extras.dicom_standard_validation.spec_reader.edition_reader import EditionReader
 from pathlib import Path
 
 from radlib.dcm import check_for_valid_modality, dicom_modalities

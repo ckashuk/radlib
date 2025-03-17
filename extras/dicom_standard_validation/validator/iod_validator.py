@@ -8,8 +8,8 @@ from pydicom.multival import MultiValue
 from pydicom.valuerep import validate_value
 from pydicom.tag import Tag
 
-from radlib.dcm.dicom_standard_validation.spec_reader.condition import ConditionType, ConditionOperator, Condition
-from radlib.dcm.dicom_standard_validation.tag_tools import tag_name_from_id
+from extras.dicom_standard_validation.spec_reader.condition import ConditionType, ConditionOperator, Condition
+from extras.dicom_standard_validation.tag_tools import tag_name_from_id
 
 
 class DatasetStackItem:
