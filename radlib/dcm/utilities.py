@@ -37,5 +37,7 @@ def set_sitk_dicom_tag(image, tag_name, value):
     # TODO: 202502 csk revisit this
     if value is None:
         value = ''
+    if type(value) is not str:
+        value = str(value)
     tag_id = sitk_dicom_tags[tag_name]
     image.SetMetaData(tag_id, value)

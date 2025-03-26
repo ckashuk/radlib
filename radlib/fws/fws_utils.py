@@ -1,11 +1,6 @@
 from flywheel.client import Client as flywheel_client
-
+from radlib.fws.fws_image import FWSImageFile
 from radlib.fw.flywheel_data import load_image_from_local_path, load_image_from_flywheel
-
-
-def uwhealthaz_client():
-    return flywheel_client('flywheelaz.uwhealth.org:djESGL039D5xmVq81ZknQS4tT2nEg2IYNcd3z-ubX_3wzwCyLaUJ1WeAg',
-                           request_timeout=1000)
 
 
 def fws_in_jupyter_notebook():
@@ -15,6 +10,12 @@ def fws_in_jupyter_notebook():
     except NameError:
         return False
 
+def fws_load_image(fw_client, fw_path, file_name, local_root, local_path):
+    if fw_client is not None:
+        return load_image_from_flywheel(fw_client, fw_path)
+    else:
+        return load_image_from_local_path(local_path)
+
 
 def create_new_cell(contents):
     from IPython.core.getipython import get_ipython
@@ -22,55 +23,66 @@ def create_new_cell(contents):
     shell.set_next_input(contents, replace=False)
 
 
-def fws_load_image(group_label, project_label, subject_label, session_label, acquisition_label, file_name, local_path):
-    if local_path is not None:
-        return load_image_from_local_path(local_path)
-
-    return load_image_from_flywheel(group_label, project_label, subject_label, session_label, acquisition_label,
-                                    file_name)
-
-
-def fws_generate_data_dictionary(fw_client, project_label,
-                                 project_labels=None,
+def fws_input_file_list(fw_client, project_label,
                                  subject_labels=None,
                                  session_labels=None,
                                  acquisition_labels=None,
-                                 generate_code=False):
-    # important flywheel objects
-    project = fw_client.projects.find_one(f'label={project_label}').reload()
-    group = [group for group in fw_client.groups() if group.id == project.group][0].reload()
-    subject = project.subjects()[0].reload()
+                                 generate_code=False,
+                                 local_root=None):
 
     # generate data dictionary
-    data = {'fw_client': fw_client,
-            # 'project': project,
-            'files': []
-            }
+    data = {'fw_client': fw_client}
+    files = []
     code = [
-        '# FWS-INPUTS edit this cell to the flywheel file references that you need, add local_path(s) if necessary, then TURN OFF generate_code above']
+        '# FWS-INPUTS edit this cell to the flywheel file references that you need, add local_path(s) if necessary, then TURN OFF generate_code above'
+    ]
 
+    # start the flywheel object tree
+    # TODO: 202503 csk add more than one project/group/etc
+    project = fw_client.projects.find_one(f'label={project_label}').reload()
+
+    # TODO: 202503 csk better way to do this??
+    group = [group for group in fw_client.groups() if group.id == project.group][0].reload()
+    data['fw_root'] = f"/{group.id}/{project.label}"
+    data['local_root'] = local_root
+
+    if subject_labels is None:
+        subject_labels = [subject.label for subject in project.subjects()]
+
+    data_local_root = data['local_root']
+    code.append(f'local_root = "{data_local_root}"')
+    code.append('fws_input_files = FWSImageFileList( {')
     # traverse the flwheel object tree
     # TODO: 202503 add project (and group?) to this
-    for session in project.subjects()[0].sessions():
+    for subject_label in subject_labels:
+        subject = project.subjects.find_one(f'label={subject_label}')
+        sessions_used = [s for s in subject.sessions() if session_labels is None or s.label in session_labels]
+        for session in sessions_used:
 
-        if session_labels is not None and session.label not in session_labels:
-            continue
+            for acquisition in [a for a in session.acquisitions()  if acquisition_labels is None or a.label in acquisition_labels]:
+                fw_path = f'{session.label}/{acquisition.label}'
+                if len(subject_labels) > 1:
+                    fw_path = f'{subject_label}/{fw_path}'
 
-        for acquisition in session.acquisitions():
+                for file in acquisition.files:
+                    # file_name = f'{file.name.replace(" ", "_").replace("-", "_").replace("*", "").replace("+", "").replace("(", "").replace(")", "").split(".")[0]}'
+                    local_path = f'{local_root}'
+                    # if local_root is not None:
+                    #     local_path = f'{local_root}/{file.name}'
 
-            if acquisition_labels is not None and acquisition.label not in acquisition_labels:
-                continue
+                    # TODO: 202503 csk tweak this to make unique without getting to large?
+                    file_var_name = file.name
+                    if len(sessions_used) > 1:
+                        file_var_name = f'{session.label.replace(" ", "-").replace(".", "_").replace("-", "_").replace("(", "_").replace(")", "_")}_{file_var_name}'
 
-            for file in acquisition.files:
-                data['files'].append({"group": group.id,
-                                      "project": project.label,
-                                      "subject": subject.label,
-                                      "session": session.label,
-                                      "acquisition": acquisition.label,
-                                      "file": file.name})
-                file_var = f'{session.label.replace(" ", "_")}_{file.name.replace(" ", "_").split(".")[0]}'
-                code.append(
-                    f'{file_var} = fws_load_image("{group.id}", "{project.label}", "{subject.label}", "{session.label}", "{acquisition.label}", "{file.name}", local_path=None)')
+                    file_item = {'fw_path': fw_path, 'file_name': file.name}
+                    files.append(file_item)
+
+                    fw_path = f'{group.id}/{project.label}/{subject.label}/{session.label}/{acquisition.label}'
+                    code.append(
+                        f'"{file_var_name}": FWSImageFile(fw_client=fw_client, fw_path="{fw_path}", file_name="{file.name}",\n\tlocal_path="{local_path}"),')
+    code.append('})')
+    data['files'] = files
 
     if generate_code and fws_in_jupyter_notebook():
         # add a new code cell

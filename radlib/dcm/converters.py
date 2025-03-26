@@ -15,7 +15,7 @@ from scipy import ndimage
 import SimpleITK as SimpleITK
 from skimage import measure
 
-from dcm import contours
+from radlib.dcm import contours
 
 
 class InvalidDicomDateFormatException(Exception):
@@ -84,9 +84,7 @@ def pet_suv_factor(pet_slice: pydicom.FileDataset):
         inj_datetime = strptime_formats(inj_datetime)
         scan_datetime = strptime_formats(scan_datetime)
 
-        print(scan_datetime, inj_datetime)
         t = (scan_datetime - inj_datetime).total_seconds()
-        print(t)
 
         scan_dose = inj_dose * np.exp(-(np.log(2) * t) / half_life)  # in Bq
 

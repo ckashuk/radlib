@@ -51,15 +51,28 @@ def get_pet_path(excel_id, pet_index=1):
     path = f'{spore_17009_image_root}/{image_id}/PET{pet_index}'
     return path
 
+def get_pathology_file_list(fw_client, group_label, project_label, subject_label, series_label, ack_label):
+
+    # return a list indexed by "slice x' in the filename
+
+    # get acquisition
+    ack = fw_client.resolve(f'{group_label}/{project_label}/{subject_label}/{series_label}/{ack_label}').path[-1]
+    file_list = [None] * 40
+    # get to the proper acquisition
+    files = [file for file in ack.files if use_pathology_slice_image(file.name)]
+    for file in files:
+        file_index = file.name.split(' ')
+        if len(file_index) < 3:
+            continue
+        file_index = int(file_index[2].replace('.tif', '').replace('.jpg', ''))
+        file_list[file_index] = file.name
+    return file_list
+
 def get_pathology_images(excel_id):
     image_paths = glob.glob(f'{get_pathology_path(excel_id)}/*.tif')
 
     # filter "extra" images
     image_paths = [image_path for image_path in image_paths if '_punch' not in image_path and 'hard' not in image_path]
-
-    for image_path in image_paths:
-        print(os.path.basename(image_path))
-    exit()
 
     slice_numbers = [int(os.path.basename(image_path).replace('.tif', '').replace('_', ' ').split('lice ')[1].split(' ')[0].split('_')[0]) for image_path in image_paths]
     images = [sitk.ReadImage(image_path) for image_path in image_paths]
@@ -198,7 +211,7 @@ def generate_volume(excel_id, modality, pet_index, new_root):
     sitk.WriteImage(sitk_image[0], new_path)
 
 
-def update_dicom_tags_for_pathology_instance(pathology_id, pathology_dicom, instance_index, reference_dicom,
+def update_dicom_tags_for_pathology_instance(pathology_id, pathology_dicom, instance_index, reference_dicom, reference_origin,
                                    new_series_instance_uid = pydicom.uid.generate_uid() ):
 
     # for tag in pathology_dicom.GetMetaDataKeys():
@@ -219,7 +232,8 @@ def update_dicom_tags_for_pathology_instance(pathology_id, pathology_dicom, inst
     set_sitk_dicom_tag(pathology_dicom, "Modality", get_sitk_dicom_tag(reference_dicom, "Modality"))
     set_sitk_dicom_tag(pathology_dicom, "StudyInstanceUID", get_sitk_dicom_tag(reference_dicom, "StudyInstanceUID"))
     set_sitk_dicom_tag(pathology_dicom, "StudyDescription",get_sitk_dicom_tag(reference_dicom, "StudyDescription") + '-pathology')
-    set_sitk_dicom_tag(pathology_dicom, "SeriesNumber",str(int(get_sitk_dicom_tag(reference_dicom, "SeriesNumber")) + 1))
+    if get_sitk_dicom_tag(reference_dicom, "SeriesNumber") != 'NA':
+        set_sitk_dicom_tag(pathology_dicom, "SeriesNumber",str(int(get_sitk_dicom_tag(reference_dicom, "SeriesNumber")) + 1))
     # pathology_dicom.InstanceNumber = str(instance_index)
     set_sitk_dicom_tag(pathology_dicom, "SeriesInstanceUID",get_sitk_dicom_tag(reference_dicom, "SeriesInstanceUID") + '.1') # , new_series_instance_uid)
     set_sitk_dicom_tag(pathology_dicom, "NominalScannedPixelSpacing",None)
@@ -229,16 +243,22 @@ def update_dicom_tags_for_pathology_instance(pathology_id, pathology_dicom, inst
     set_sitk_dicom_tag(pathology_dicom, "FrameOfReferenceUID", get_sitk_dicom_tag(reference_dicom, "FrameOfReferenceUID"))
 
     set_sitk_dicom_tag(pathology_dicom, "SliceThickness", get_sitk_dicom_tag(reference_dicom, "SliceThickness"))
-    set_sitk_dicom_tag(pathology_dicom, "ImagePositionPatient", get_sitk_dicom_tag(reference_dicom, "ImagePositionPatient"))
-    set_sitk_dicom_tag(pathology_dicom, "ImageOrientationPatient", get_sitk_dicom_tag(reference_dicom, "ImageOrientationPatient"))
-    set_sitk_dicom_tag(pathology_dicom, "SliceLocation", get_sitk_dicom_tag(reference_dicom, "ImagePositionPatient")[2])
+    set_sitk_dicom_tag(pathology_dicom, "ImagePositionPatient", reference_origin)
+    # set_sitk_dicom_tag(pathology_dicom, "ImageOrientationPatient", get_sitk_dicom_tag(reference_dicom, "ImageOrientationPatient"))
+    set_sitk_dicom_tag(pathology_dicom, "SliceLocation", reference_origin[2])
     set_sitk_dicom_tag(pathology_dicom, "PixelSpacing", get_sitk_dicom_tag(reference_dicom, "PixelSpacing"))
 
     set_sitk_dicom_tag(pathology_dicom, "SeriesDescription",f"{pathology_id} pathology series")
 
-    pathology_dicom.SetOrigin(reference_dicom.GetOrigin())
-    pathology_dicom.SetSpacing(reference_dicom.GetSpacing())
-
+    if type(reference_dicom) == sitk.Image:
+        pathology_dicom.SetOrigin(reference_origin)
+        pathology_dicom.SetSpacing(reference_dicom.GetSpacing())
+    else:
+        ps = reference_dicom.PixelSpacing
+        ss = reference_dicom.SliceThickness
+        pixel_spacing = [ps[0], ps[1], ss]
+        pathology_dicom.SetOrigin(reference_origin)
+        pathology_dicom.SetSpacing(pixel_spacing)
     # print(pathology_dicom.GetOrigin(), pathology_dicom.GetSpacing(), pathology_dicom.GetSize())
     # print(pathology_dicom.GetDirection())
     # print(reference_dicom.GetOrigin(), reference_dicom.GetSpacing(), reference_dicom.GetSize())
