@@ -12,6 +12,9 @@ https://stackoverflow.com/questions/34782409/understanding-dicom-image-attribute
 
 # import OS module
 import os
+import tempfile
+
+import dicom2nifti
 import numpy as np
 import pandas as pd
 import zipfile
@@ -23,7 +26,7 @@ from datetime import datetime
 import SimpleITK as sitk
 
 from radlib.fw.flywheel_data import load_image_from_local_path
-from radlib.fws.fws_image import FWSImageFileList
+from radlib.fws.fws_image import FWSImageFileList, FWSImageType, FWSImageFile, FWSLevel
 from radlib.fws.fws_utils import fws_input_file_list
 
 logger = logging.getLogger(__name__)
@@ -310,8 +313,8 @@ def DicomSelectionSingle(fws_input_files):
             print("time_point>>>>", time_point)
             session_files = fws_input_files.get_list_for_session(time_point)
             for file_name, file_data in session_files.items():
-                dicom_slice = file_data.image_slices()[0]
-                print("selecting", file_name, dicom_slice.shape)
+                image_slices = file_data.load_image(FWSImageType.pydicom, force_reload = True)
+                dicom_slice = image_slices[0]
                 if select_dicom(dicom_slice):
                     selected_dicoms[file_name] = file_data
             """
@@ -334,10 +337,19 @@ def DicomSelectionSingle(fws_input_files):
 
     return selected_dicoms
 
-def convert_dataset_to_nifti(fws_selected_files, local_output_folder=None):
+def convert_dataset_to_nifti(fws_selected_files, local_output_folder=None, fw_acquisition_label=None):
     for file_name, file_data in fws_selected_files.items():
-        sitk_image = file_data.image()
-        if local_output_folder is not None:
-            nifti_name = file_data.file_name.split(' - ')[1].replace('+', '').replace(".dicom.zip", ".nii.gz")
-            print(f'{local_output_folder}/{file_data.file_name}.nii.gz')
-            sitk.WriteImage(sitk_image, f'{local_output_folder}/{nifti_name}')
+        if local_output_folder is None:
+            local_output_folder  = tempfile.mkdtemp()
+        nifti_name = file_data.file_name().split(' - ')[1].replace('+', '').replace(".dicom.zip", ".nii.gz")
+        dicom2nifti.dicom_series_to_nifti(os.path.dirname(file_data.usable_paths[0]), f'{local_output_folder}/{nifti_name}')
+        if fw_acquisition_label is not None and file_data.fw_client is not None:
+            # check for valid acquisition
+            file_data.fw_path = FWSImageFile.replace_flywheel_components(file_data.fw_path, acquisition=fw_acquisition_label, file_name=nifti_name)
+            ack = file_data.resolve(FWSLevel.acquisition)
+
+            file_data.save_image(FWSImageType.nii)
+
+def mri_data_check(fws_selected_files):
+    for file in fws_selected_files:
+        print(file.file_name())

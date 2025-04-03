@@ -4,8 +4,10 @@ import tempfile
 from enum import Enum
 from zipfile import ZipFile
 import SimpleITK as sitk
+import flywheel
 import pydicom
 import dicom2nifti
+from flywheel import ApiException
 from zipp.glob import separate
 
 
@@ -26,24 +28,33 @@ class FWSImageType(Enum):
     nii = 2
     nrrd = 3
     sitk = 4
+    tif = 5
 
+class FWSLevel(Enum):
+    group = 0
+    project = 1
+    subject = 2
+    session = 3
+    acquisition = 4
+    file_name = 5
 
 class FWSImageFile:
-
+    levels = [FWSLevel.group, FWSLevel.project, FWSLevel.subject, FWSLevel.session, FWSLevel.acquisition, FWSLevel.file_name]
     # define valid image type file extensions
     dicom_file_types = ['.dcm', '.zip']
-    image_file_types = ['.nii.gz', '.nrrd', '.jpg', '.jpeg', '.png', '.pdf']
+    image_file_types = ['.nii.gz', '.nrrd', '.jpg', '.jpeg', '.tif', '.png', '.pdf']
     image_file_types.extend(dicom_file_types)
 
 
     def __init__(self, fw_client=None, fw_path=None, local_path=None):
-        # TODO: 202503 csk find better way for load/save than "usable" flag
         self.fw_client = fw_client
 
         self.fw_path = fw_path
         self.local_path = local_path
 
-        self.usable_paths = self.generate_usable_paths()
+        # 202503 csk make this on demand when we need it!
+        # self.usable_paths = self.generate_usable_paths()
+        self.usable_paths = None
 
         self.image_store = None
 
@@ -57,8 +68,13 @@ class FWSImageFile:
     @staticmethod
     def separate_flywheel_components(fw_path):
         components = fw_path.split('/')
-
-        return components[0], components[1], components[2], components[3], components[4], components[5]
+        group = components[0] if len(components) > 0 else None
+        project = components[1] if len(components) > 1 else None
+        subject = components[2] if len(components) > 2 else None
+        session = components[3] if len(components) > 3 else None
+        acquisition = components[4] if len(components) > 4 else None
+        file_name = components[5] if len(components) > 5 else None
+        return group, project, subject, session, acquisition, file_name
 
 
     @staticmethod
@@ -71,11 +87,48 @@ class FWSImageFile:
         acquisition = components[4] if acquisition is None else acquisition
         file_name = components[5] if file_name is None else file_name
 
-        return f'{group}/{project}/{subject}/{session}/{acquisition}/{file_name}'
+        new_fw_path = f'{group}/{project}/{subject}/{session}/{acquisition}/{file_name}'.replace('//', '/')
+        if new_fw_path.endswith('/'):
+            new_fw_path = new_fw_path[:-1]
 
+        return new_fw_path
+
+    def resolve(self, level, label_if_not_found = None):
+        # truncate path
+        fw_path = self.fw_path
+        for l in range(5, level.value, -1):
+            fw_path = fw_path.rsplit('/', 1)[0]
+
+        try:
+            obj = self.fw_client.resolve(fw_path)['path'][level.value]
+            return obj
+        except (ApiException, flywheel.rest.ApiException, IndexError) as e:
+            if label_if_not_found is None:
+                return None
+            # TODO: 202504 csk better way to handle this? recursion to add multiple levels??
+            parent_path = fw_path.rsplit('/', 1)[0]
+            parent_obj = self.fw_client.resolve(parent_path)['path'][-1]
+            obj = None
+            if level == FWSLevel.project:
+                obj = parent_obj.add_project(label=label_if_not_found)
+            if level == FWSLevel.subject:
+                obj = parent_obj.add_subject(label=label_if_not_found)
+            if level == FWSLevel.session:
+                obj = parent_obj.add_session(label=label_if_not_found)
+            if level == FWSLevel.acquisition:
+                obj = parent_obj.add_acquisition(label=label_if_not_found)
+
+            self.fw_path = f'{parent_path}/{label_if_not_found}'
+            return obj
+
+        return None
 
     def load_image(self, image_type: FWSImageType = FWSImageType.sitk, force_reload=False):
         image = None
+
+        # 202503 csk made this on demand
+        if self.usable_paths is None:
+            self.usable_paths = self.generate_usable_paths()
 
         # print(f"load_image {image_type} {force_reload} {self.image_store is None} {len(self.usable_paths)}")
         if not force_reload and self.image_store is not None:
@@ -95,8 +148,11 @@ class FWSImageFile:
 
         elif image_type == FWSImageType.nii:
             series_path = os.path.dirname(self.usable_paths[0])
-            nifti_path = f'{tempfile.TemporaryDirectory.name}/file.nii.gz'
+            nifti_path = f'{tempfile.mkdtemp()}{os.path.sep}file.nii.gz'
             self.image_store = dicom2nifti.dicom_series_to_nifti(series_path, nifti_path, reorient_nifti=True)
+
+        elif image_type == FWSImageType.tif:
+            self.image_store = sitk.ReadImage(self.usable_paths[0])
 
         if self.image_store is None:
             raise FWSImageFileLoadxception
@@ -109,6 +165,10 @@ class FWSImageFile:
         # flywheel vs local saving, add more options, clean up temp dirs!
         # make it easier and more intuitive for everyone to use!
 
+        # 202503 csk made this on demand
+        if self.usable_paths is None:
+            self.usable_paths = self.generate_usable_paths()
+
         # make sure (local) usable paths is set
         if len(self.usable_paths) == 0:
             self.usable_paths = self.generate_usable_paths()
@@ -117,7 +177,7 @@ class FWSImageFile:
         local_path = force_local_path
         if local_path is None:
             tmp_dir = tempfile.mkdtemp()
-            local_path = f'{tmp_dir}/{self.file_name()}'
+            local_path = f'{tmp_dir}{os.path.sep}{self.file_name()}'
 
         if type is FWSImageType.pydicom:
             # save to zip archive
@@ -136,19 +196,17 @@ class FWSImageFile:
 
         # upload to flywheel
         if force_local_path is None and self.fw_client is not None:
-            # file may not exist yet, so remove file designation from path to find acquisition
-            fw_acquisition_path = self.fw_path.rsplit('/', 1)[0]
-            fw = self.fw_client.resolve(fw_acquisition_path)
-            ack = fw['path'][-1]
+            # make sure acquisition exists
+            _, _, _, _, ack_label, _ = self.separate_flywheel_components(self.fw_path)
+            ack = self.resolve(FWSLevel.acquisition, label_if_not_found=ack_label)
+
+            # save file to it
             ack.upload_file(local_path)
 
 
     def generate_usable_paths(self):
-        usable_paths = []
         if self.fw_client is not None:
             usable_paths = FWSImageFile.get_paths_from_flywheel(self.fw_client, self.fw_path)
-            print(len(usable_paths))
-
         else:
             if self.local_path is None:
                 raise FWSImageFileLocalException
@@ -160,6 +218,15 @@ class FWSImageFile:
         for usable_path in usable_paths:
             if not FWSImageFile.fws_is_image_file(usable_path):
                 raise FWSImageFileLocalException("usable_files path has no image file types!")
+
+        if len(usable_paths) > 1 and usable_paths[0].endswith('.dcm'):
+            # make sure these are sorted by z position fo correct reconstructuin!
+            # do it now so we don't have to think about it later
+            z_positions = []
+            for usable_path in usable_paths:
+                dcm = pydicom.dcmread(usable_path, stop_before_pixels=True)
+                z_positions.append(dcm.ImagePositionPatient[2])
+            usable_paths = [x for _, x in sorted(zip(z_positions, usable_paths), key=lambda pair: pair[0])]
 
         return usable_paths
 
@@ -181,11 +248,9 @@ class FWSImageFile:
         return FWSImageFile.fws_is_file_type(path, FWSImageFile.dicom_file_types)
 
 
-
     @staticmethod
     def get_paths_from_flywheel(fw_client, fw_path):
         # given the "address" to an image, download the file to a temp dir and get individual slice paths for later loading
-
         image_name = fw_path.split('/')[-1]
         fw_path = fw_path.rsplit('/', 1)[0]
 
@@ -193,8 +258,8 @@ class FWSImageFile:
         ack = fw_client.resolve(f'{fw_path}').path[-1]
 
         # download image from fw to temp folder
-        tmp_dir = tempfile.mkdtemp()  #   TemporaryDirectory()
-        tmp_path = f'{tmp_dir}/{image_name}'
+        tmp_dir = tempfile.mkdtemp()
+        tmp_path = f'{tmp_dir}{os.path.sep}{image_name}'
         ack.download_file(image_name, tmp_path)
         paths = FWSImageFile.get_paths_from_local(tmp_path)
         return paths
@@ -210,15 +275,27 @@ class FWSImageFile:
             # save slices to a temp directory
             with ZipFile(local_path) as zip_file:
                 zip_file.extractall(zip_dir)
-                # print(f"extracted {local_path} to {zip_dir}")
 
-            paths = glob.glob(f'{zip_dir}/{extract_name}/*.dcm')
+            # TODO 202503 csk look into this: sometimes unzips with extract name, sometimes does not.
+            # does this come from the existing zip file archname???
+            # paths = glob.glob(f'{zip_dir}/{extract_name}/*.dcm')
+            paths = glob.glob(f'{zip_dir}{os.path.sep}*.dcm')
             return paths
 
-        elif local_path.endswith('.dcm') or local_path.endswith('.nrrd') or local_path.endswith('.nii.gz'):
+        elif FWSImageFile.fws_is_image_file(local_path):
             return [local_path]
         else:
-            return glob.glob(f'{local_path}/*')
+            return glob.glob(f'{local_path}{os.path.sep}*')
+
+    def convert_image_to_dicom(self):
+        if self.local_path is not None:
+            self.local_path = f'{os.path.splitext(self.local_path)[0]}.dcm'
+        else:
+            self.local_path = f'{tempfile.mkdtemp()}{os.path.sep}{os.path.splitext(self.file_name())[0]}.dcm'
+        sitk.WriteImage(self.image_store, self.local_path)
+        self.image_store = sitk.ReadImage(self.local_path)
+
+        return self.image_store
 
 """
 def load_image_from_flywheel(self):
@@ -328,7 +405,7 @@ def load_image_from_local_path(local_path, local_dir=None, separate_series=False
         return series, series_slice_origins
     else:
         return list(series.values())[0], series_slice_origins
-
+"""
 class FWSImageFileList(dict):
     def __init__(self, files = None):
         super().__init__()
@@ -359,15 +436,14 @@ class FWSImageFileList(dict):
 
     def get_session_list(self, sorted=False):
         session_list = []
-
         for file in self.values():
             local_subject = ''
             if file.local_path is not None:
-                local_subject = file.local_path.split('/')[-1]
+                local_subject = file.local_path.split('/')[-3]
 
             fw_subject = ''
             if file.fw_path is not None:
-                fw_subject = file.fw_path.split('/')[-2]
+                fw_subject = file.fw_path.split('/')[-4]
             subject = local_subject
             if len(subject) == 0:
                 subject = fw_subject
@@ -388,7 +464,6 @@ class FWSImageFileList(dict):
             if session_label in file_data.fw_path:
                 new_list[file_name] = file_data
         return new_list
-"""
 
 if __name__ == "__main__":
     pass

@@ -9,7 +9,7 @@ import glob
 from flywheel import flywheel, ApiException
 
 from radlib.fw.flywheel_clients import uwhealthaz_client
-from radlib.fws.fws_image import FWSImageFile, FWSImageFileLocalException, FWSImageType
+from radlib.fws.fws_image import FWSImageFile, FWSImageFileLocalException, FWSImageType, FWSLevel
 
 """
 tests for FWSImageFile object, a class to hold information on an image file which could come
@@ -29,6 +29,11 @@ class TestFWSImageFile(unittest.TestCase):
         self.flywheel_PET_path = 'prostatespore/fws_test_project/fws_test_subject/fws_test_session/PET/PET AC Prostate.zip'
         self.flywheel_spreadsheet_path = 'prostatespore/fws_test_project/fws_test_subject/fws_test_session/spreadsheet/FINAL.2022.12.24.oost surgery review data.xlsx'
         self.flywheel_svs_path = 'prostatespore/fws_test_project/fws_test_subject/fws_test_session/svs/17009-1-Slice 1-001.svs'
+
+        self.good_fw_path = 'prostatespore/fws_test_project/fws_test_subject/fws_test_session/MR/Obl Axial T2 Prostate.zip'
+        self.bad_session_fw_path = FWSImageFile.replace_flywheel_components(self.good_fw_path, session='bad_session')
+        self.bad_acquisition_fw_path = FWSImageFile.replace_flywheel_components(self.good_fw_path, acquisition='bad_acquisition')
+
 
         # local paths
         self.local_root = '//onfnas01.uwhis.hosp.wisc.edu/radiology/Groups/GarrettGroup/Research/test_data/flywheelscripts'
@@ -144,6 +149,47 @@ class TestFWSImageFile(unittest.TestCase):
         # file_fw_saved = fws_file_new.load_image(image_type=FWSImageType.pydicom)
         # file_local_zip_saved =
         # self.assertEqual(len(file_fw), len(file_fw1a))
+
+    def test_separate_flywheel_components(self):
+        fw_named_path = 'group/project/subject/session/acquisition/file_name'
+        fw_path_names = [name for name in FWSImageFile.separate_flywheel_components(fw_named_path)]
+
+        for level in FWSImageFile.levels:
+            self.assertEqual(fw_path_names[level.value], level.name, f'separate_flywheel_components failed for {level.name}')
+
+
+    def test_resolve(self):
+
+        # good image has all levels, so we can get the comparisons:
+        good_objs = self.fw_client.resolve(self.good_fw_path)['path']
+
+        # test good cases
+        good_fw_image = FWSImageFile(fw_client=self.fw_client, fw_path = self.good_fw_path)
+        for level in FWSImageFile.levels:
+            obj_good = good_fw_image.resolve(level)
+            obj_ref = good_objs[level.value]
+            if level == FWSLevel.file_name:
+                self.assertEqual(obj_good.name, obj_ref.name, f"resolve found failed at {level.name}")
+            else:
+                self.assertEqual(obj_good.label, obj_ref.label, f"resolve found failed at {level.name}")
+
+        # test None cases (level does not exist)
+        bad_fw_image = FWSImageFile(fw_client=self.fw_client, fw_path=self.bad_session_fw_path)
+
+        for level in FWSImageFile.levels:
+            obj_bad = bad_fw_image.resolve(level)
+            obj_ref = good_objs[level.value]
+            if level in [FWSLevel.file_name, FWSLevel.acquisition, FWSLevel.session]:
+                self.assertEqual(obj_bad, None, f"resolve not found failed at {level.name}")
+            else:
+                self.assertEqual(obj_bad.label, obj_ref.label, f"resolve partial found failed at {level.name}")
+
+        # test add if not exist: requires removal from flywheel test project for now!
+        # TODO: 202504 csk need acquisition for now, improve this when we need other levels!
+        add_fw_image = FWSImageFile(fw_client=self.fw_client, fw_path=self.bad_acquisition_fw_path)
+        level = FWSLevel.acquisition
+        obj_added = add_fw_image.resolve(level, label_if_not_found='added_acquisition')
+        self.assertEqual(obj_added.label, 'added_acquisition', f'resolve add if not found failed for {level.name}')
 
 
 if __name__ == "__main__":

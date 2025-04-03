@@ -211,8 +211,9 @@ def generate_volume(excel_id, modality, pet_index, new_root):
     sitk.WriteImage(sitk_image[0], new_path)
 
 
-def update_dicom_tags_for_pathology_instance(pathology_id, pathology_dicom, instance_index, reference_dicom, reference_origin,
+def update_dicom_tags_for_pathology_instance(pathology_id, pathology_dicom, instance_index, reference_dicom,
                                    new_series_instance_uid = pydicom.uid.generate_uid() ):
+    reference_origin = reference_dicom.ImagePositionPatient
 
     # for tag in pathology_dicom.GetMetaDataKeys():
     #     print("path", tag, pathology_dicom.GetMetaData(tag))
@@ -257,6 +258,7 @@ def update_dicom_tags_for_pathology_instance(pathology_id, pathology_dicom, inst
         ps = reference_dicom.PixelSpacing
         ss = reference_dicom.SliceThickness
         pixel_spacing = [ps[0], ps[1], ss]
+
         pathology_dicom.SetOrigin(reference_origin)
         pathology_dicom.SetSpacing(pixel_spacing)
     # print(pathology_dicom.GetOrigin(), pathology_dicom.GetSpacing(), pathology_dicom.GetSize())

@@ -78,9 +78,10 @@ def fws_input_file_list(fw_client, project_label,
                     file_item = {'fw_path': fw_path, 'file_name': file.name}
                     files.append(file_item)
 
-                    fw_path = f'{group.id}/{project.label}/{subject.label}/{session.label}/{acquisition.label}'
+                    fw_path = f'{group.id}/{project.label}/{subject.label}/{session.label}/{acquisition.label}/{file.name}'
+                    local_path = f'{local_path}/{file.name}'
                     code.append(
-                        f'"{file_var_name}": FWSImageFile(fw_client=fw_client, fw_path="{fw_path}", file_name="{file.name}",\n\tlocal_path="{local_path}"),')
+                        f'"{file_var_name}": FWSImageFile(fw_client=fw_client, fw_path="{fw_path}",\n\tlocal_path="{local_path}"),')
     code.append('})')
     data['files'] = files
 
