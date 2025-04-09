@@ -10,7 +10,7 @@ def uwhealth_client():
                            request_timeout=1000)
 
 def uwhealthaz_client():
-    return flywheel.Client('flywheelaz.uwhealth.org:djESGL039D5xmVq81ZknQS4tT2nEg2IYNcd3z-ubX_3wzwCyLaUJ1WeAg',
+    return flywheel.Client('flywheelaz.uwhealth.org:djEfiALy55nFsQ99M4E6ZQAW8F53fYucPUqU8HQhlZ4dBfsWZ-BYOcpCQ',
                            request_timeout=1000)
 
 
