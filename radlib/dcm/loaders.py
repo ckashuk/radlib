@@ -6,6 +6,9 @@ import SimpleITK as sitk
 import tempfile
 from zipfile import ZipFile
 
+from radlib.dcm.converters import pet_suv_factor
+
+
 # load the DICOM files
 # from https://pydicom.github.io/pydicom/stable/auto_examples/image_processing/reslice.html#sphx-glr-auto-examples-image-processing-reslice-py
 def debug_print(message, debug_flag):
@@ -13,7 +16,7 @@ def debug_print(message, debug_flag):
     if debug_flag:
         print(message)
 
-def load_dicom_series_pydicom(dicom_root, debug=False):
+def load_dicom_series_pydicom(dicom_root, debug=False, pet_suv = False):
     # TODO: csk add support for multiple series in one folder
     files = []
     if not '*' in dicom_root:
@@ -35,10 +38,10 @@ def load_dicom_series_pydicom(dicom_root, debug=False):
             skipcount = skipcount + 1
 
     debug_print(f"skipped, no SliceLocation: {skipcount}", debug)
-    return load_dicom_series_from_slices(slices)
+    return load_dicom_series_from_slices(slices, pet_suv)
 
 
-def load_dicom_series_from_slices(slices):
+def load_dicom_series_from_slices(slices, pet_suv = False):
     # ensure they are in the correct order
     slices = sorted(slices, key=lambda s: s.SliceLocation)
 
@@ -59,7 +62,10 @@ def load_dicom_series_from_slices(slices):
         if s.get('RescaleSlope') is not None:
             img2d = np.add(np.multiply(img2d, s.RescaleSlope), s.RescaleIntercept)
         # add suv
-        i
+        if s.get('Modality') == 'PT':
+            suv = pet_suv_factor(s)
+            print(suv)
+            img2d *= suv
         img3d[:, :, i] = img2d
 
     img3d = np.array(img3d)

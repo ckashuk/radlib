@@ -1,61 +1,55 @@
+import glob
 import os
-
-import flywheel
-
-from radlib.fw.flywheel_clients import uwhealthaz_client
-from radlib.fws.fws_image import FWSImageFileList, FWSImageFile, FWSImageType
-
-root_path="z:/radiology/Groups/IDIAGroup/Data/_Brain/Radiology/_Adult/_Glioma/GBM_Cohort_brucegroup/"
-mri_data="TCGA-GBM"
-indir="DICOM_structuralMRI_fws"
-outdir="nifti_raw"
-
-input_path=os.path.join(root_path,mri_data,indir)
-output_path=os.path.join(root_path,mri_data,outdir)
-
-fw_client = uwhealthaz_client()
-group_id = ''
-project_label = "GBM Cohort"
-subject_label = "RAD-AI-CNS-TUMOR-0001"
-
-fw_subject_path = 'brucegroup/GBM Cohort/RAD-AI-CNS-TUMOR-0001'
-
-def get_fw_files(fw_client, fw_path):
-    list = FWSImageFileList()
-
-    subject = fw_client.resolve(fw_path)['path'][-1]  # ['path'][-1]
-    for session in subject.sessions():
-        acquisition_path = f'{fw_path}/{session.label}/nifti_raw'
-        try:
-            ack = fw_client.resolve(acquisition_path)['path'][-1]
-        except flywheel.rest.ApiException:
-            continue
-
-        for file in ack.files:
-            file_path = f'{acquisition_path}/{file.name}'
-            file_data = FWSImageFile(fw_client, fw_path=file_path)
-            list[file.name] = file_data
-
-    return list
+import json
+import pandas as pd
+import nibabel as nib
+import matplotlib.pyplot as plt
+import numpy as np
 
 
-def mri_data_check(file_list):
-    for file_name, file_data in file_list.items():
-        print(file_name)
-        file = file_data.load_image(FWSImageType.nii)
-        print(file)
+def detect_view_orientation(data, affine):
+    """
+    Automatically detect the view orientation based on image characteristics and affine matrix.
 
-selected_files = get_fw_files(fw_client, fw_subject_path)
+    Args:
+        data (np.ndarray): The image data
+        affine (np.ndarray): The affine transformation matrix from the NIfTI file
 
-mri_data_check(selected_files)
+    Returns:
+        str: Detected view ('axial', 'sagittal', or 'coronal')
+    """
+    # Get the absolute values of the affine matrix orientation components
+    abs_affine = np.abs(affine[:3, :3])
 
-"""
-for timepoint in timepoint_dirs:
-    timepoint_path = os.path.join(patient_path, timepoint)
-    nifti_files = [f for f in os.listdir(timepoint_path) if f.endswith('.nii.gz')]
+    # Find the primary axis of each dimension
+    primary_axes = np.argmax(abs_affine, axis=0)
 
-    if not nifti_files:
-        continue
+    # In medical imaging conventions:
+    # - X axis is typically Left-Right
+    # - Y axis is typically Anterior-Posterior
+    # - Z axis is typically Superior-Inferior
+
+    # Check the orientation based on the third axis (slice direction)
+    slice_axis = primary_axes[2]
+
+    if slice_axis == 2:  # If Z axis is dominant in the third dimension
+        return 'axial'
+    elif slice_axis == 0:  # If X axis is dominant in the third dimension
+        return 'sagittal'
+    else:  # If Y axis is dominant in the third dimension
+        return 'coronal'
+
+
+def plot_mri_files(nifti_files, patient_id, timepoint, timepoint_path):
+    """
+    Plot MRI files with automatically detected view orientation.
+
+    Args:
+        nifti_files (list): List of NIFTI files to display
+        patient_id (str): Patient identifier
+        timepoint (str): Timepoint identifier
+        timepoint_path (str): Path to the NIFTI files
+    """
     nifti_files = sorted(nifti_files)
     n_files = len(nifti_files)
     n_cols = min(3, n_files)
@@ -63,17 +57,21 @@ for timepoint in timepoint_dirs:
 
     fig = plt.figure(figsize=(5 * n_cols, 5 * n_rows))
 
+    def get_slice_data(data, index, view):
+        if view == 'axial':
+            return data[:, :, index].T
+        elif view == 'sagittal':
+            return data[index, :, :].T
+        elif view == 'coronal':
+            return data[:, index, :].T
 
-    def on_key(event, ax, img_data, title, voxel_dims):
-        if event.key == 'up':
-            ax.index = min(ax.index + 1, img_data.shape[2] - 1)
-        elif event.key == 'down':
-            ax.index = max(ax.index - 1, 0)
-
-        ax.images[0].set_array(img_data[:, :, ax.index].T)
-        ax.set_title(f'{title}\nSlice: {ax.index}/{img_data.shape[2] - 1}\nVoxel size: {voxel_dims:.2f}mm')
-        fig.canvas.draw_idle()
-
+    def get_max_index(data, view):
+        if view == 'axial':
+            return data.shape[2]
+        elif view == 'sagittal':
+            return data.shape[0]
+        elif view == 'coronal':
+            return data.shape[1]
 
     for idx, nifti_file in enumerate(nifti_files):
         ax = fig.add_subplot(n_rows, n_cols, idx + 1)
@@ -82,22 +80,21 @@ for timepoint in timepoint_dirs:
         img = nib.load(file_path)
         data = img.get_fdata()
 
+        # Automatically detect view orientation
+        view = detect_view_orientation(data, img.affine)
+
         # Get voxel dimensions
         voxel_dims = np.array(img.header.get_zooms())
         voxel_size_str = f"{voxel_dims[0]:.2f} x {voxel_dims[1]:.2f} x {voxel_dims[2]:.2f}"
 
-        try:
-            ax.index = data.shape[2] // 2
-            ax.imshow(data[:, :, ax.index].T, cmap='gray')
-            ax.set_title(f'{nifti_file}\nSlice: {ax.index}/{data.shape[2] - 1}\nVoxel size: {voxel_size_str}mm')
+        # Set initial slice index
+        ax.index = get_max_index(data, view) // 2
 
-            fig.canvas.mpl_connect('key_press_event',
-                                   lambda event, ax=ax, data=data, title=nifti_file, voxel_dims=voxel_size_str:
-                                   on_key(event, ax, data, title, voxel_dims))
-        except:
-            continue
+        # Display initial slice
+        ax.imshow(get_slice_data(data, ax.index, view), cmap='gray')
+        max_index = get_max_index(data, view) - 1
+        ax.set_title(f'{nifti_file}\n{view.capitalize()} Slice: {ax.index}/{max_index}\nVoxel size: {voxel_size_str}mm')
 
     plt.suptitle(f'Patient: {patient_id} - Timepoint: {timepoint}')
     plt.tight_layout()
     plt.show()
-"""

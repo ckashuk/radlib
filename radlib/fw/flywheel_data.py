@@ -7,7 +7,7 @@ import numpy as np
 import pydicom
 
 from radlib.dcm.converters import pet_suv_factor
-from radlib.projects.spore_17009_set import get_pathology_images
+# from radlib.projects.spore_17009_set import get_pathology_images
 
 
 def load_image_from_flywheel(fw_client, fw_path, keep_slices=False):

@@ -49,14 +49,16 @@ class TestRadService(unittest.TestCase):
         self.assertIsInstance(service, ServiceInstance, "Failed ServiceInstance creation")
 
     def test_create_service_processor(self):
-        def new_processor():
-            return "this is a fake processor"
+        class NewProcessorInstance(ServiceInstance):
+            def processor(self):
+                return "this is a new processor"
 
-        service = ServiceInstance(new_processor)
+
+        service = NewProcessorInstance()
         self.assertTrue(callable(service.processor))
 
         ret = service.processor()
-        self.assertEqual(ret, "this is a fake processor")
+        self.assertEqual(ret, "this is a new processor")
 
     def test_run_service(self):
         service = ServiceInstance()
@@ -64,7 +66,7 @@ class TestRadService(unittest.TestCase):
         self.assertTrue(service.active)
 
         time.sleep(5)
-
+        print("stopping")
         service.stop()
         self.assertFalse(service.active)
 

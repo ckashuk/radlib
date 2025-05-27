@@ -3,6 +3,7 @@ import pydicom
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 for file_path in glob.glob('C:/Users/CXK023/Downloads/1199 - Perfusion ROIs.dicom/*'):
     slice = pydicom.dcmread(file_path)
     print(slice.SeriesInstanceUID, slice.pixel_array.shape)
