@@ -1,0 +1,18 @@
+version: '3'
+services:
+  radservice:
+    env_file: "radservice.env"
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - in: ${INPUT_PATH}
+      - out: ${OUTPUT_PATH}
+      - LOGS: ${LOGS_PATH}
+      - SCRATCH: ${SCRATCH_PATH}
+    depends_on:
+      - redis
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"

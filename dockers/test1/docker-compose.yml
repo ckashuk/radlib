@@ -1,0 +1,23 @@
+version: '3.2'
+services:
+  radservice:
+    env_file: ".env"
+    build: .
+    ports:
+      - "8001:8001"
+    volumes:
+      - in:${RADSERVICE_INPUT_PATH}
+      - out:${RADSERVICE_OUTPUT_PATH}
+      - logs:${RADSERVICE_LOGS_PATH}
+      - scratch:${RADSERVICE_SCRATCH_PATH}
+    depends_on:
+      - redis
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"
+volumes:
+  in:
+  out:
+  logs:
+  scratch:

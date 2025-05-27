@@ -40,9 +40,14 @@ class DicomSorter:
     default_radsurv_sorted_folder_name = 'dicom_structuralMRI'
     default_radsurv_converted_folder_name = 'nifti_raw'
 
-    def __init__(self, input_folder, sorted_folder='None', converted_folder='None', sort_structure=None,
-                 filename_filter=None, continuous=False,
-                 sorted_folder_name=None, converted_folder_name=None,
+    def __init__(self, input_folder,
+                 sorted_folder='None',
+                 converted_folder='None',
+                 sort_structure=None,
+                 filename_filter=None,
+                 continuous=False,
+                 sorted_folder_name=None,
+                 converted_folder_name=None,
                  send_to_flywheel=True,
                  delete_input_files=True
                  ):
