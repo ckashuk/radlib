@@ -336,7 +336,7 @@ class TestIODValidator:
         }
     )
     def test_for_frame_pointer_condition_not_met(self, validator):
-        # regression test for #58
+        # regression test_processor for #58
         result = validator.validate()
 
         assert has_tag_error(
@@ -599,7 +599,7 @@ class TestIODValidator:
         }
     )
     def test_incorrect_parsed_type(self, validator):
-        # regression test for exception, see #115
+        # regression test_processor for exception, see #115
         modules = validator._dicom_info.modules
         modules["C.10.5"]["(0070,0001)"]["items"]["(0070,0009)"]["items"][
             "(0070,0024)"

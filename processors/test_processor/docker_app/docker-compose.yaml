@@ -1,0 +1,35 @@
+services:
+  test_processor:
+    build: .
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - capabilities:
+            - gpu
+            count: all
+            driver: nvidia
+    environment:
+      fileset3_MOUNT_POINT: /home/aa-cxk023/share/scratch/test_processor_1750175509.3485482
+      input_files_MOUNT_POINT: /home/aa-cxk023/share/scratch/test_processor_1750175509.3485482/input_files
+      output_files_MOUNT_POINT: /home/aa-cxk023/share/scratch/test_processor_1750175509.3485482/output_files
+    image: test_processor
+    ipc: host
+    ports:
+    - 8001:8001
+    stdin_open: true
+    tty: true
+    volumes:
+    - /home/aa-cxk023/share/scratch/test_processor_1750175509.3485482:/scratch
+    - /mnt/RadServiceCache/files:/files
+    - /home/aa-cxk023/share/scratch/test_processor_1750175509.3485482:/fileset3
+    - /home/aa-cxk023/share/scratch/test_processor_1750175509.3485482/input_files:/input_files
+    - /home/aa-cxk023/share/scratch/test_processor_1750175509.3485482/output_files:/output_files
+    - /home/aa-cxk023/share/watch_folder/active/script3.yaml:/script.yaml
+volumes:
+  files: null
+  fileset3: null
+  input_files: null
+  output_files: null
+  scratch: null
+  script.yaml: null

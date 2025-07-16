@@ -14,8 +14,8 @@ pytestmark = pytest.mark.usefixtures("fs")
 
 class MemoryEditionReader(EditionReader):
     """Mock class that gets the file contents in constructor instead of
-    downloading them. We test this class to avoid real download connections
-    during the test.
+    downloading them. We test_processor this class to avoid real download connections
+    during the test_processor.
     """
 
     def __init__(self, path, contents=""):
@@ -76,7 +76,7 @@ def test_no_html(base_path, edition_path):
 
 def test_no_editions(base_path, edition_path):
     reader = MemoryEditionReader(
-        base_path, '<html><A HREF="/medical/dicom/2014a/">test</A><html>'
+        base_path, '<html><A HREF="/medical/dicom/2014a/">test_processor</A><html>'
     )
     assert reader.get_editions() is None
     assert not edition_path.exists()

@@ -28,7 +28,7 @@ def generate_valid_template_dcm(modality: str) -> pydicom.Dataset:
     -------
     a "valid" pydicom "dcm" object produced from code, that can be updated by adding/replacing tags
 
-    TODO: 2024-12 csk handle missing PixelData attribute? could test that size tags are valid
+    TODO: 2024-12 csk handle missing PixelData attribute? could test_processor that size tags are valid
     """
 
     check_for_valid_modality(modality)
@@ -58,7 +58,7 @@ def generate_dcm_pydicom(modality: str,
         for s in range(slice_count):
             slice_data = pixel_data[:, :, s]
             # slice_data = slice_data.astype(np.uint8)
-            # first get a valid template ds
+            # first get a valid template_processor ds
             ds = generate_valid_template_dcm(modality)
 
             """

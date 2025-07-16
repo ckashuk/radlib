@@ -43,11 +43,11 @@ class TestFakeDicomFileValidator:
         self.assert_fatal_error(validator, "non_existing", error_string="File missing")
 
     def test_invalid_file(self, fs, validator):
-        fs.create_file("test", contents="invalid")
-        self.assert_fatal_error(validator, "test", error_string="Invalid DICOM file")
+        fs.create_file("test_processor", contents="invalid")
+        self.assert_fatal_error(validator, "test_processor", error_string="Invalid DICOM file")
 
     def test_missing_sop_class(self, validator):
-        filename = "test.dcm"
+        filename = "test_processor.dcm"
         file_dataset = FileDataset(
             filename, Dataset(), file_meta=self.create_metadata()
         )
@@ -57,10 +57,10 @@ class TestFakeDicomFileValidator:
     def test_unknown_sop_class(self, validator):
         dataset = Dataset()
         dataset.SOPClassUID = "Unknown"
-        file_dataset = FileDataset("test", dataset, file_meta=self.create_metadata())
-        dcmwrite("test", file_dataset, write_like_original=False)
+        file_dataset = FileDataset("test_processor", dataset, file_meta=self.create_metadata())
+        dcmwrite("test_processor", file_dataset, write_like_original=False)
         self.assert_fatal_error(
-            validator, "test", "Unknown SOPClassUID (probably retired): Unknown"
+            validator, "test_processor", "Unknown SOPClassUID (probably retired): Unknown"
         )
 
     def test_validate_dir(self, fs, validator):
@@ -78,16 +78,16 @@ class TestFakeDicomFileValidator:
     def test_non_fatal_errors(self, validator):
         dataset = Dataset()
         dataset.SOPClassUID = "1.2.840.10008.5.1.4.1.1.2"  # CT Image Storage
-        file_dataset = FileDataset("test", dataset, file_meta=self.create_metadata())
-        dcmwrite("test", file_dataset, write_like_original=False)
-        error_dict = validator.validate("test")
+        file_dataset = FileDataset("test_processor", dataset, file_meta=self.create_metadata())
+        dcmwrite("test_processor", file_dataset, write_like_original=False)
+        error_dict = validator.validate("test_processor")
         assert len(error_dict) == 1
-        errors = error_dict["test"]
+        errors = error_dict["test_processor"]
         assert "fatal" not in errors
 
 
 def test_that_pixeldata_is_read(dicom_fixture_path, validator):
-    # regression test for #6
+    # regression test_processor for #6
     rtdose_path = dicom_fixture_path / "rtdose.dcm"
     error_dict = validator.validate(rtdose_path)
     assert len(error_dict) == 1

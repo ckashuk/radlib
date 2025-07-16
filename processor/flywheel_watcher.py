@@ -1,0 +1,90 @@
+import os
+import sys
+import tempfile
+import time
+import logging
+
+import flywheel
+
+root_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+sys.path.append(root_path)
+from radlib.fw.flywheel_clients import uwhealthaz_client
+from radlib.processor.processor import Processor
+from radlib.fws.fws_utils import fws_is_flywheel_path, fws_has_more_scripts, fws_get_next_script
+
+from radlib.processors.rrs_radsurv_processor.radservice_app import RrsRadsurvProcessor
+
+
+class FlywheelWatcherException(Exception):
+    pass
+
+# TODO: 202507 csk add
+class FlywheelWatcher():
+    def __init__(self, watch_path, scratch_path=None):
+        self.watch_path = watch_path
+        if not fws_is_flywheel_path(self.watch_path):
+            raise FlywheelWatcherException(f'{watch_path} is not a valid Flywheel path!')
+        self.scratch_path = tempfile.mkdtemp() if scratch_path is None else scratch_path
+        self.watch_log_path = f'{self.scratch_path}/{self.watch_name()}.log'
+        self.active = True
+        self.fw_client = uwhealthaz_client()
+
+    def watch_name(self):
+        name = self.watch_path
+        if name.endswith('in'):
+            name = os.path.dirname(name)
+        return os.path.basename(name)
+
+    def watch(self):
+        # csk need to get the logger again when run in a separate process!
+        new_logger = logging.getLogger(self.watch_name())
+        logging.basicConfig(
+            filename=self.watch_log_path,
+            format='%(asctime)s %(levelname)-8s %(message)s',
+            level=logging.INFO,
+            datefmt='%Y-%m-%d %H:%M:%S')
+
+        while self.active:
+            print("watch", self.watch_path)
+            # check analysis
+            analysis = self.fw_client.resolve(f'{self.watch_path.replace("fw://", "")}/files')['path'][-1]
+
+            while fws_has_more_scripts(analysis):
+                try:
+                    # print("download to:", f'{self.scratch_path}/script.yaml')
+                    script_info = fws_get_next_script(analysis, remove=True)
+                    script_path = f'{self.scratch_path}/script.yaml'
+                    Processor.save_script(script_info, script_path)
+                    RrsRadsurvProcessor.run_processor(scratch_path=self.scratch_path, script_path=script_path)
+                except OverflowError as e:
+                    print("Exception", e)
+                    continue
+
+            # pause?
+            time.sleep(5)
+
+
+def get_analysis(object, analysis_label):
+    # TODO 202507 csk better way to do this?
+    for a in object.analyses:
+        if a.label == analysis_label:
+            return a
+    return None
+
+
+def add_analysis(object, analysis_label):
+    try:
+        return object.add_analysis(label=analysis_label)
+    except flywheel.rest.ApiException:
+        # analysis already exists, have to find it
+        return get_analysis(object, analysis_label)
+
+fw_client = uwhealthaz_client()
+analysis_label = 'rrs_radsurv'
+project = fw_client.resolve('brucegroup/GBM Cohort IDiA')['path'][-1]
+project = project.reload()
+analysis = add_analysis(project, analysis_label)
+
+watcher = FlywheelWatcher(f"fw://brucegroup/GBM Cohort IDiA/analyses/{analysis_label}", "/home/aa-cxk023/share/scratch")
+
+watcher.watch()

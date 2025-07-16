@@ -1,0 +1,6 @@
+base_image: rrs_radsurv
+filesets:
+  dicom_raw: //onfnas01.uwhis.hosp.wisc.edu/radiology/Groups/IDIAGroup/Data/_Brain/Radiology/_Adult/Glioma/GBM_Cohort_brucegroup/UW-GBM/{subject_label}/{session_full_label}/*
+  nifti_raw: //onfnas01.uwhis.hosp.wisc.edu/radiology/Groups/IDIAGroup/Data/_Brain/Radiology/_Adult/Glioma/GBM_Cohort_brucegroup/UW-GBM/{subject_label}/{session_full_label}/nifti_raw/*
+  preprocessed: //onfnas01.uwhis.hosp.wisc.edu/radiology/Groups/IDIAGroup/Data/_Brain/Radiology/_Adult/Glioma/GBM_Cohort_brucegroup/UW-GBM/{subject_label}/{session_full_label}/preprocessed/*
+  nifti_raw_modalities_niiQuery.csv: /home/aa-cxk023/share/files/nifti_raw_modalities_niiQuery.csv

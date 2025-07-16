@@ -24,10 +24,10 @@ def dicom_fixture_path(fixture_path):
 @pytest.mark.order(0)
 @pytest.mark.parametrize("revision", ["2015b", "2024c"])
 def test_validate_sr(revision, caplog, standard_path, dicom_fixture_path):
-    # test also for 2015b to test an issue causing an exception
+    # test_processor also for 2015b to test_processor an issue causing an exception
     rtdose_path = dicom_fixture_path / "rtdose.dcm"
     # recreate json files to avoid getting the cached ones
-    # relies on the fact that this test is run first
+    # relies on the fact that this test_processor is run first
     cmd_line_args = [
         "-src",
         str(standard_path),
@@ -39,6 +39,6 @@ def test_validate_sr(revision, caplog, standard_path, dicom_fixture_path):
     with caplog.at_level(logging.INFO):
         main(cmd_line_args)
 
-    # regression test for #9
+    # regression test_processor for #9
     assert "Unknown SOPClassUID" not in caplog.text
     assert "Tag (0008,1070) (Operators' Name) is missing" in caplog.text

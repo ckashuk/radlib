@@ -1,0 +1,6 @@
+base_image: radlib
+filesets:
+  input_files: fw://brucegroup/GBM Cohort/RAD-AI-CNS-TUMOR-0004/2012-02-07 19_39_56/nifti_raw/*
+  output_files: fw://brucegroup/GBM Cohort/RAD-AI-CNS-TUMOR-0004/preprocessed/Baseline/*
+scratch_path: /home/aa-cxk023/share/scratch
+service_name: test_processor

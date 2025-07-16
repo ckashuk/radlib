@@ -1,7 +1,0 @@
-input_paths:
-- fw://brucegroup/GBM Cohort/RAD-AI-CNS-TUMOR-0004/2012-02-07 19_39_56/nifti_raw/*
-local_path: /home/aa-cxk023/idia/Data/_Brain/Radiology/_Adult/_Glioma/GBM_Cohort_brucegroup/UW-GBM
-output_paths:
-- - /preprocessed/RAD-AI-CNS-TUMOR-0004/Baseline/*
-  - fw://brucegroup/GBM Cohort/RAD-AI-CNS-TUMOR-0004/preprocessed/Baseline/*
-service_name: rrs_radsurv_fw

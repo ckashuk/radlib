@@ -5,7 +5,7 @@ from radlib.fw.flywheel_clients import uwhealthaz_client
 fw_client = uwhealthaz_client()
 
 group_label = 'prostatespore'
-project_label = 'csk test project'
+project_label = 'csk test_processor project'
 subject_label = 'csk_test_subject'
 series_label = 'csk_test_session'
 ack_label = 'PET'

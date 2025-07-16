@@ -1,0 +1,20 @@
+base_image: rrs_radsurv
+filesets:
+  dicom_raw: fw://{group_label}/{project_label}/{subject_label}/{session_label}/dicom_raw/*
+  nifti_raw: fw://{group_label}/{project_label}/{subject_label}/{session_label}/nifti_raw/*
+  preprocessed: fw://{group_label}/{project_label}/{subject_label}/{session_label}/preprocessed2/*
+  nifti_raw_modalities_niiQuery.csv: /home/aa-cxk023/share/files/nifti_raw_modalities_niiQuery.csv
+# local
+# root_folder: /{root}/{project_label}/UW_GBM
+# filesets:
+#   dicom_raw: {root_folder}/{subject_label}/{session_label}/*
+#   nifti_raw: {root_folder}/UW-GBM/{subject_label}/{session_full_label}/nifti_raw/*
+#   preprocessed: {root_folder}/UW-GBM/{subject_label}/{session_full_label}/preprocessed/*
+#   nifti_raw_modalities_niiQuery.csv: /home/aa-cxk023/share/files/nifti_raw_modalities_niiQuery.csv
+# flywheel
+# root_folder: fw"//{group_label}/{project_label}
+# filesets:
+#   dicom_raw: {root_folder}/{subject_label}/{session_label}/dicom_raw/*
+#   nifti_raw: {root_folder}/{subject_label}/{session_label}/nifti_raw/*
+#   preprocessed: {root_folder}/{subject_label}/{session_label}/preprocessed2/*
+#   nifti_raw_modalities_niiQuery.csv: /home/aa-cxk023/share/files/nifti_raw_modalities_niiQuery.csv flywheel

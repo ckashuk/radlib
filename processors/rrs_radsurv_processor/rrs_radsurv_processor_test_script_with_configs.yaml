@@ -1,0 +1,53 @@
+base_image: rrs_radsurv
+configs:
+  example_config:
+    config_path: /app/segmentation/tumor_seg/config/example_config.yaml
+    input:
+      compute_dice: false
+      data_dir: /scratch/preprocessed/SUBJECT/Baseline
+      mode: single
+      single_scan:
+        flair: SUBJECT_FLAIR_reg_SkullS_BiasC.nii.gz
+        t1: SUBJECT_T1_reg_SkullS_BiasC.nii.gz
+        t1c: SUBJECT_T1c_SRI24_SkullS_BiasC.nii.gz
+        t2: SUBJECT_T2_reg_SkullS_BiasC.nii.gz
+    output:
+      file_path: /scratch/preprocessed/SUBJECT/Baseline/tumor_seg_swinUNETR.nii.gz
+  main_config:
+    config_path: /app/config/main_config.yaml
+    mri_data: site
+    mri_sites:
+      site: ''
+    root_path: /
+    run_deep_learning: false
+    run_dicomConversion: false
+    run_dicomSelection: false
+    run_feature_visualization: false
+    run_niftiSelection: true
+    run_preprocessing: true
+    run_radiomics: false
+    run_segmentation: true
+    run_survival_test: false
+    run_survival_train: false
+    submodule_configs:
+      preprocessing: /app/config/preprocessing_config.yaml
+      radiomics: /app/config/radiomics_config.yaml
+      segmentation: /app/config/segmentation_config.yaml
+  preprocessing_config:
+    config_path: /app/config/preprocessing_config.yaml
+    preprocessing_settings:
+      mri_modalities:
+      - T1c
+      - FLAIR
+      - T1
+      - T2
+filesets:
+  nifti_raw: fw://brucegroup/GBM Cohort IDiA/RAD-AI-CNS-TUMOR-0012/20040421/nifti_raw/*
+  nifti_raw_modalities_niiQuery.csv: /home/aa-cxk023/share/files/nifti_raw_modalities_niiQuery.csv
+  preprocessed: fw://brucegroup/GBM Cohort IDiA/RAD-AI-CNS-TUMOR-0012/20040421/preprocessed/*
+flywheel_group: brucegroup
+flywheel_project: GBM Cohort IDiA
+scratch_path: /home/aa-cxk023/share/scratch
+service_name: rrs_radsurv_processor
+unique_name: RRS_RadSurv_Processor_1749248588.330328
+watch_path: /mnt/RadServiceCache/rrs_radsurv_processor/watch

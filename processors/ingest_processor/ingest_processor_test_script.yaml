@@ -1,0 +1,12 @@
+base_image: radlib
+filesets:
+  dicom_raw: /home/aa-cxk023/idia/Data/_Brain/Radiology/_Adult/_Glioma/GBM_Cohort_brucegroup/UW-GBM/dicom_raw/RAD-AI-CNS-TUMOR-0010/2016-11-12
+    17_27_19/*
+  dicom_sorted: scratch
+  nifti_raw: fw://brucegroup/GBM Cohort IDiA/RAD-AI-CNS-TUMOR-0010/20161112/nifti_raw/*
+flywheel_group: brucegroup
+flywheel_project: GBM Cohort IDiA
+preserve_input_files: true
+scratch_path: /home/aa-cxk023/share/scratch
+send_to_flywheel: true
+service_name: ingest_processor

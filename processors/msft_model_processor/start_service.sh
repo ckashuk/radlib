@@ -1,0 +1,3 @@
+ sudo docker build -t msft_model_service .
+ # sudo docker run -it --gpus all --ipc=host -v /home/aa-cxk023/share/regrid_tests:/local -v /home/aa-cxk023/share/radservice_share/in:/in -v /home/aa-cxk023/share/radservice_share/out:/out -v /home/aa-cxk023/share/radservice_share/logs:/logs -v /home/aa-cxk023/share/radservice_share/scratch:/scratch total_segmentator_processor /bin/bash
+ sudo docker run --runtime=nvidia --gpus "device=3" -it -p 8895:8888 --shm-size=1g --ulimit memlock=-1 --name cxrreportgeninference2 --rm -v "/mnt/cxrscratch":/workingdir -v /mnt/CXRReportCheckCohort:/data nvcr.io/uwsmphrad/florenceinferenceuw:1.0

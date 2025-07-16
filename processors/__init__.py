@@ -1,0 +1,3 @@
+from radlib.processors.ingest_processor.radservice_app import IngestProcessor
+from radlib.processors.rrs_radsurv_processor.radservice_app_ingested import RrsRadsurvProcessor
+from radlib.processors.total_segmentator_processor.radservice_app import TotalSegmentatorProcessor

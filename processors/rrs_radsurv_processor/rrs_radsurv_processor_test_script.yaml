@@ -1,0 +1,12 @@
+base_image: rrs_radsurv
+filesets:
+  dicom_raw: fw://brucegroup/GBM Cohort IDiA/RAD-AI-CNS-TUMOR-0012/20040421/dicom_raw/*
+  nifti_raw: fw://brucegroup/GBM Cohort IDiA/RAD-AI-CNS-TUMOR-0012/20040421/nifti_raw/*
+  nifti_raw_modalities_niiQuery.csv: /home/aa-cxk023/share/files/nifti_raw_modalities_niiQuery.csv
+  preprocessed: fw://brucegroup/GBM Cohort IDiA/RAD-AI-CNS-TUMOR-0012/20040421/preprocessed2/*
+flywheel_group: brucegroup
+flywheel_project: GBM Cohort IDiA
+scratch_path: /home/aa-cxk023/share/scratch
+service_name: rrs_radsurv_processor
+unique_name: RRS_RadSurv_Processor_1749248588.330328
+watch_path: /mnt/RadServiceCache/rrs_radsurv_processor/watch

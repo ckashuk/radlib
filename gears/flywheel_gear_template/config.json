@@ -1,0 +1,35 @@
+{
+    "config": {
+    },
+    "inputs": {
+        "file1": {
+            "base": "file",
+            "location": {
+                "name": "select a PET file",
+                "path": "/flywheel/v0/input/message_file/message.txt"
+            }
+        },
+        "file2": {
+            "base": "file",
+            "location": {
+                "name": "select an MR file",
+                "path": "/flywheel/v0/input/message_file/message.txt"
+            }
+        },
+        "file3": {
+            "base": "file",
+            "location": {
+                "name": "N/A",
+                "path": "/flywheel/v0/input/message_file/message.txt"
+            }
+        },
+        "file4": {
+            "base": "file",
+            "location": {
+                "name": "N/A",
+                "path": "/flywheel/v0/input/message_file/message.txt"
+            }
+        }
+    },
+    "destination": {}
+}

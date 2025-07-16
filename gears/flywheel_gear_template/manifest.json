@@ -1,0 +1,46 @@
+{
+  "name": "jupyter-script-gear",
+  "label": "Jupyter Script gear",
+  "description": "This is a gear framework that can run a workflow script developed from a Jupyter Notebook",
+  "version": "0.1.37",
+  "author": "Carl Kashuk",
+  "maintainer": "Carl Kashuk <ckashuk@wisc.edu>",
+  "cite": "",
+  "license": "Apache-2.0",
+  "url": "https://github.com/ckashuk/flywheel_gear_template",
+  "source": "",
+  "environment": {
+    "FLYWHEEL": "/flywheel/v0",
+    "PYTHON_PIP_VERSION": "24.0",
+    "GPG_KEY": "7169605F62C751356D054A26A821E680E5FA6305",
+    "PYTHON_GET_PIP_URL": "https://github.com/pypa/get-pip/raw/dbf0c85f76fb6e1ab42aa672ffca6f0a675d9ee4/public/get-pip.py",
+    "PATH": "/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "LANG": "C.UTF-8",
+    "PYTHON_VERSION": "3.12.3",
+    "PWD": "/flywheel/v0",
+    "PYTHON_GET_PIP_SHA256": "dfe9fd5c28dc98b5ac17979a953ea550cec37ae1b47a5116007395bfacff2ab9"
+  },
+  "custom": {
+    "gear-builder": {
+      "category": "analysis",
+      "image": "radiology/swiss-army-gear:0.1.37"
+    },
+    "flywheel": {
+      "suite": "Flywheel Training Gears"
+    }
+  },
+  "inputs": {},
+  "config": {
+    "rerun_scripts": {
+      "description": "if set, previously run scripts will be run and potentially overwrite old results.",
+      "type": "boolean",
+      "default": false
+    },
+    "run_eligible": {
+      "description": "If set, run all eligible scripts (starting with fws-), if not set, run the first one in order.",
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "command": "python3 run.py"
+}

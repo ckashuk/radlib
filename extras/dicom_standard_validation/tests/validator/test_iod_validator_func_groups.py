@@ -180,7 +180,7 @@ class TestIODValidatorFuncGroups:
     @pytest.mark.shared_macros([TIMING_RELATED_PARAMS])
     @pytest.mark.per_frame_macros([FRAME_CONTENT])
     def test_empty_tag_in_shared_group(self, validator):
-        # regression test for KeyError in this case
+        # regression test_processor for KeyError in this case
         validator._dataset.SOPClassUID = uid.MRSpectroscopyStorage
         validator._dataset.ImageType = "ORIGINAL\\PRIMARY"
         result = validator.validate()

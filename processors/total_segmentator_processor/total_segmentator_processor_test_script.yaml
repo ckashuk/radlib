@@ -1,0 +1,8 @@
+base_image: wasserth/totalsegmentator:2.2.1
+filesets:
+  input_files:
+  - fw://brucegroup/GBM Cohort IDiA/RAD-AI-CNS-TUMOR-0010/20161112/nifti_raw/Sag_T1_FLAIR_DL.nii.gz
+  output_files:
+  - fw://brucegroup/GBM Cohort IDiA/RAD-AI-CNS-TUMOR-0010/20161112/nifti_raw/Sag_T1_FLAIR_DL.nii.gz
+scratch_path: /home/aa-cxk023/share/scratch
+service_name: total_segmentator_processor

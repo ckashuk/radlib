@@ -30,7 +30,7 @@ class TestInvalidConditionParser:
         assert result.type == ConditionType.UserDefined
 
     def test_ignore_condition_without_value(self, parser):
-        # regression test for #15
+        # regression test_processor for #15
         result = parser.parse(
             "required if Selector Attribute (0072,0026) is nested in "
             "one or more Sequences or is absent."
@@ -121,7 +121,7 @@ class TestSimpleConditionParser:
         assert result.values == []
 
     def test_values_failed_parsing(self, parser):
-        """Regression test for #20
+        """Regression test_processor for #20
         (if the value could not be parsed ignore the condition)"""
         result = parser.parse(
             "Required if Constraint Violation Significance (0082,0036) "
@@ -840,7 +840,7 @@ class TestComplicatedConditionParser:
         """
         The last condition is not parseable and therefore ignored
         together with the condition that is ANDead with.
-        To see the expected correct result, see the test
+        To see the expected correct result, see the test_processor
         `disabled_test_data_points_check` above.
         """
         result = parser.parse(
@@ -965,7 +965,7 @@ class TestComplicatedConditionParser:
         assert other_cond is None
 
     def test_empty_value_handled(self, parser):
-        # regression test for an exception that happened due to a wrongly
+        # regression test_processor for an exception that happened due to a wrongly
         # read in condition, see #119
         result = parser.parse(
             "Required if segmented data is NOT used in an Image IOD "
