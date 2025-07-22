@@ -71,10 +71,10 @@ COPY requirements.txt /app/
 RUN pip install -r /app/requirements.txt
 
 WORKDIR /app
-COPY ../radservice_app.py /app/
+COPY ../processor_app.py /app/
 
 # run it!
-CMD ["python", "radservice_app.py"]
+CMD ["python", "processor_app.py"]
 # CMD ["/bin/bash"]
 '''
 
@@ -228,14 +228,13 @@ class Processor:
         # shutil.copy(script_path, work_dir)
         # find folder for items to copy
         copy_dir = f'{os.path.dirname(os.path.dirname(__file__))}/processors/{self.processor_name()}'
-        shutil.copy(f'{copy_dir}/radservice_app.py', work_dir)
+        shutil.copy(f'{copy_dir}/processor_app.py', work_dir)
         shutil.copy(f'{copy_dir}/requirements.txt', work_dir)
         shutil.copy(f'{copy_dir}/UWHEALTHROOT.crt', work_dir)
 
         # create docker-compose
         # TODO 202506 csk break this out into a separate function??
         docker_compose_content = copy.deepcopy(docker_compose_template_yaml)
-
         # replace processor name
         # TODO 202506 csk may be a cleaner way to do this??
         docker_compose_content['services'][self.processor_docker_image_name()] = docker_compose_content['services']['service_name']
@@ -320,8 +319,8 @@ class Processor:
         # this sends to the screen too (for debugging))
         # self.logger.addHandler(logging.StreamHandler())
         # these redirect stdout, stderr to the logger
-        sys.stdout = StreamToLogger(self.logger, logging.INFO)
-        sys.stderr = StreamToLogger(self.logger, logging.ERROR)
+        # sys.stdout = StreamToLogger(self.logger, logging.INFO)
+        # sys.stderr = StreamToLogger(self.logger, logging.ERROR)
 
         self.logger.info(f'started {self.processor_name()} on {os.path.basename(self.script_path)}')
 
@@ -416,6 +415,7 @@ class Processor:
     @staticmethod
     def load_script(script_path):
         # load the script
+        print("load_script", script_path)
         with open(script_path, 'r') as yaml_path:
             script_info = yaml.safe_load(yaml_path)
         return script_info
@@ -439,6 +439,8 @@ class Processor:
         args = Processor.parse_args()
         if fws_in_docker() and script_path is None:
             script_path = '/script.yaml'
+        elif script_path is None:
+            script_path = args.script_path
         if scratch_path is None:
             scratch_path = args.scratch_path
 

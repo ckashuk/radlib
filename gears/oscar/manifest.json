@@ -1,0 +1,64 @@
+{
+  "name": "oscar-gear",
+  "label": "OSCAR gear",
+  "description": "This is a gear to run the OSCAR analysis on a given subject",
+  "version": "0.0.2",
+  "author": "Carl Kashuk",
+  "maintainer": "Carl Kashuk <ckashuk@wisc.edu>",
+  "cite": "",
+  "license": "Apache-2.0",
+  "url": "https://github.com/ckashuk/radlib",
+  "source": "",
+  "environment": {
+    "FLYWHEEL": "/flywheel/v0",
+    "PYTHON_PIP_VERSION": "24.0",
+    "GPG_KEY": "7169605F62C751356D054A26A821E680E5FA6305",
+    "PYTHON_GET_PIP_URL": "https://github.com/pypa/get-pip/raw/dbf0c85f76fb6e1ab42aa672ffca6f0a675d9ee4/public/get-pip.py",
+    "PATH": "/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "LANG": "C.UTF-8",
+    "PYTHON_VERSION": "3.12.3",
+    "PWD": "/flywheel/v0",
+    "PYTHON_GET_PIP_SHA256": "dfe9fd5c28dc98b5ac17979a953ea550cec37ae1b47a5116007395bfacff2ab9",
+    "NV_LIBCUBLAS_VERSION": "12.6.4.1-1",
+    "LD_LIBRARY_PATH": "/workspace/:/usr/local/nvidia/lib:/usr/local/nvidia/lib64",
+    "NV_LIBNCCL_PACKAGE_VERSION": "2.23.4-1",
+    "NV_CUDNN_PACKAGE_NAME": "libcudnn9-cuda-12",
+    "NV_LIBNPP_PACKAGE": "libnpp-12-6=12.3.1.54-1",
+    "CUDA_VERSION": "12.6.3",
+    "NV_CUDNN_PACKAGE": "libcudnn9-cuda-12=9.5.1.17-1",
+    "NV_LIBCUBLAS_PACKAGE_NAME": "libcublas-12-6",
+    "NVIDIA_REQUIRE_CUDA": "cuda>=12.6 brand=unknown,driver>=470,driver<471 brand=grid,driver>=470,driver<471 brand=tesla,driver>=470,driver<471 brand=nvidia,driver>=470,driver<471 brand=quadro,driver>=470,driver<471 brand=quadrortx,driver>=470,driver<471 brand=nvidiartx,driver>=470,driver<471 brand=vapps,driver>=470,driver<471 brand=vpc,driver>=470,driver<471 brand=vcs,driver>=470,driver<471 brand=vws,driver>=470,driver<471 brand=cloudgaming,driver>=470,driver<471 brand=unknown,driver>=535,driver<536 brand=grid,driver>=535,driver<536 brand=tesla,driver>=535,driver<536 brand=nvidia,driver>=535,driver<536 brand=quadro,driver>=535,driver<536 brand=quadrortx,driver>=535,driver<536 brand=nvidiartx,driver>=535,driver<536 brand=vapps,driver>=535,driver<536 brand=vpc,driver>=535,driver<536 brand=vcs,driver>=535,driver<536 brand=vws,driver>=535,driver<536 brand=cloudgaming,driver>=535,driver<536 brand=unknown,driver>=550,driver<551 brand=grid,driver>=550,driver<551 brand=tesla,driver>=550,driver<551 brand=nvidia,driver>=550,driver<551 brand=quadro,driver>=550,driver<551 brand=quadrortx,driver>=550,driver<551 brand=nvidiartx,driver>=550,driver<551 brand=vapps,driver>=550,driver<551 brand=vpc,driver>=550,driver<551 brand=vcs,driver>=550,driver<551 brand=vws,driver>=550,driver<551 brand=cloudgaming,driver>=550,driver<551",
+    "NVIDIA_DRIVER_CAPABILITIES": "compute,utility",
+    "NV_CUDA_LIB_VERSION": "12.6.3-1",
+    "NV_LIBCUSPARSE_VERSION": "12.5.4.2-1",
+    "NV_LIBNCCL_PACKAGE_NAME": "libnccl2",
+    "NV_CUDA_CUDART_VERSION": "12.6.77-1",
+    "NVARCH": "x86_64",
+    "NV_LIBCUBLAS_PACKAGE": "libcublas-12-6=12.6.4.1-1",
+    "NV_LIBNCCL_PACKAGE": "libnccl2=2.23.4-1+cuda12.6",
+    "NVIDIA_PRODUCT_NAME": "CUDA",
+    "DEBIAN_FRONTEND": "noninteractive",
+    "NV_NVTX_VERSION": "12.6.77-1",
+    "NV_LIBNPP_VERSION": "12.3.1.54-1",
+    "NV_CUDNN_VERSION": "9.5.1.17-1",
+    "NVIDIA_VISIBLE_DEVICES": "all",
+    "NCCL_VERSION": "2.23.4-1"
+  },
+  "custom": {
+    "gear-builder": {
+      "category": "analysis",
+      "image": "radiology/oscar-gear:0.0.2"
+    },
+    "flywheel": {
+      "suite": "OSCAR"
+    }
+  },
+  "inputs": {
+    "api-key": {
+      "base": "api-key",
+      "read-only": true
+    }
+  },
+  "config": {},
+  "command": "python3 run.py"
+}

@@ -11,8 +11,9 @@ from radlib.fws.fws_fileset import FWSFileSetException
 
 from radlib.fws.fws_utils import fws_create_paths, fws_copy_file, \
     fws_separate_flywheel_labels, fws_in_docker, \
-    fws_is_flywheel_path
+    fws_is_flywheel_path, fws_assign_modalities
 from radlib.processor.processor import Processor
+
 
 class RrsRadsurvProcessor(Processor):
 
@@ -21,16 +22,27 @@ class RrsRadsurvProcessor(Processor):
         t1 = time.time()
 
         try:
+            dicom_raw = self.get_fileset('dicom_raw')
+            files_dicom_raw = dicom_raw.get_local_paths()
             nifti_raw = self.get_fileset('nifti_raw')
             if fws_is_flywheel_path(nifti_raw.original_path):
-                subject = fws_separate_flywheel_labels(nifti_raw.original_path)[2]
+                group_label = fws_separate_flywheel_labels(nifti_raw.original_path)[0]
+                project_label = fws_separate_flywheel_labels(nifti_raw.original_path)[1]
+                subject_label = fws_separate_flywheel_labels(nifti_raw.original_path)[2]
+                session_label = fws_separate_flywheel_labels(nifti_raw.original_path)[3]
+                acquisition = 'Baseline'
             else:
                 # TODO: 202507 csk get subject label from local file path somehow
-                subject = 'subject'
+                group_label = 'group'
+                project_label = 'project'
+                subject_label = 'subject'
+                session_label = 'session'
+                acquisition = 'Baseline'
 
             preprocessed = self.get_fileset('preprocessed')
             self.log_path = f'/logs'
             fws_create_paths([self.log_path])
+            print(f">>>>{self.log_path}<<<<")
 
             # ingest
             sorter = DicomSorter('/dicom_raw',
@@ -39,8 +51,8 @@ class RrsRadsurvProcessor(Processor):
                                  preserve_input_files=False,
                                  send_to_flywheel=True,
                                  service=False,
-                                 flywheel_group=self.script_info.get('flywheel_group'),
-                                 flywheel_project=self.script_info.get('flywheel_project'),
+                                 flywheel_group=group_label,
+                                 flywheel_project=project_label,
                                  logger=self.logger)
             sorter.start()
 
@@ -49,18 +61,31 @@ class RrsRadsurvProcessor(Processor):
             # TODO: 202505 csk need to find better way for this!
             try:
                 niiQuery = self.get_fileset('nifti_raw_modalities_niiQuery.csv')
+                copy_from = niiQuery.get_local_paths()[0]
             except FWSFileSetException:
-                # generate from dicom tags
-                pass
+                # generate from tags
+                copy_from = f'{self.scratch_path}/niiQuery.csv'
+                with open(copy_from, 'w') as f:
+                    mods = fws_assign_modalities(dicom_raw, nifti_raw)
+                    print(subject_label, session_label, mods)
+                    if len(mods) < 4:
+                        raise Exception("not enough modalities were identified!")
+                    f.write('ID,time_point,acquisition_tag,mri_modalities (original nifti),n_modalities_per_case,included_modality,mri_tag\n')
+                    for mod, file_name in mods.items():
+                        f.write(f'{subject_label},{session_label},{acquisition},{file_name.replace(".dicom.zip", ".nii.gz")},4,TRUE,{mod}\n')
+
             copy_to = f'{self.log_path}/nifti_raw_modalities_niiQuery.csv'
-            fws_copy_file(niiQuery.get_local_paths()[0], copy_to)
+            fws_copy_file(copy_from, copy_to)
+
 
             # TODO: 202507 csk run ./bash_requirements.sh to install hd-bet until we find a better way to do it!
             b = subprocess.Popen('/app/bash_requirements.sh', text=True)
             exit_code = b.wait()
 
             """
-            # edit config files:
+            # edit config files from script
+            # TODO: 202507 csk revisit this
+
             print("configs")
             for config_name, config in self.script_info['configs'].items():
                 config_path = config['config_path']
@@ -72,9 +97,7 @@ class RrsRadsurvProcessor(Processor):
                     else:
                         config_data['root_path'] = '/scratch'
                         print(f"not within docker, root_path is /scratch")
-                    print("----------")
-                    print(fws_traverse_yaml_tree(config))
-                    print("----------")
+
                     for keys, value in fws_traverse_yaml_tree(config):
                         if 'SUBJECT' in value:
                             value = value.replace('SUBJECT', subject)
@@ -86,7 +109,7 @@ class RrsRadsurvProcessor(Processor):
                 # print(config_name, config_path, os.path.exists(config_path))
             exit()
             """
-            # edit config files:
+            # edit config files manually
             print("configs")
             self.code_path = '/app'  # '/home/aa-cxk023/share/RRS_RadSurv/'
 
@@ -135,12 +158,12 @@ class RrsRadsurvProcessor(Processor):
                 example_config = yaml.safe_load(path)
                 example_config['input']['compute_dice'] = False
                 example_config['input']['mode'] = 'single'
-                example_config['input']['single_scan']['flair'] = f"{subject}_FLAIR_reg_SkullS_BiasC.nii.gz"
-                example_config['input']['single_scan']['t1c'] = f"{subject}_T1c_SRI24_SkullS_BiasC.nii.gz"
-                example_config['input']['single_scan']['t1'] = f"{subject}_T1_reg_SkullS_BiasC.nii.gz"
-                example_config['input']['single_scan']['t2'] = f"{subject}_T2_reg_SkullS_BiasC.nii.gz"
-                example_config['input']['data_dir'] = f"/{self.scratch_path}/preprocessed/{subject}/Baseline"
-                example_config['output']['file_path'] = f"/{self.scratch_path}/preprocessed/{subject}/Baseline/tumor_seg_swinUNETR.nii.gz"
+                example_config['input']['single_scan']['flair'] = f"{subject_label}_FLAIR_reg_SkullS_BiasC.nii.gz"
+                example_config['input']['single_scan']['t1c'] = f"{subject_label}_T1c_SRI24_SkullS_BiasC.nii.gz"
+                example_config['input']['single_scan']['t1'] = f"{subject_label}_T1_reg_SkullS_BiasC.nii.gz"
+                example_config['input']['single_scan']['t2'] = f"{subject_label}_T2_reg_SkullS_BiasC.nii.gz"
+                example_config['input']['data_dir'] = f"/{self.scratch_path}/preprocessed/{subject_label}/{acquisition}"
+                example_config['output']['file_path'] = f"/{self.scratch_path}/preprocessed/{subject_label}/{acquisition}/tumor_seg_swinUNETR.nii.gz"
 
             with open(example_config_path, 'w') as path:
                 yaml.safe_dump(example_config, path, sort_keys=False)

@@ -1,0 +1,8 @@
+watch_name: IDiA Processor Watcher
+projects:
+- group_label: brucegroup
+  project_label: GBM Cohort IDiA
+  analysis_label: rrs_radsurv
+- group_label: idia_group
+  project_label: UPenn Cohort
+  analysis_label: rrs_radsurv

@@ -33,8 +33,8 @@ script_info = {
     'filesets': {
         'dicom_raw': f'fw://{group_id}/{project.label}/{subject.label}/{session.label}/dicom_raw/*',
         'nifti_raw': f'fw://{group_id}/{project.label}/{subject.label}/{session.label}/nifti_raw/*',
-        'preprocessed': f'fw://{group_id}/{project.label}/{subject.label}/{session.label}/preprocessed2/*',
-        'nifti_raw_modalities_niiQuery.csv': '/home/aa-cxk023/share/files/nifti_raw_modalities_niiQuery.csv'
+        'preprocessed': f'fw://{group_id}/{project.label}/{subject.label}/{session.label}/preprocessed/*',
+        # 'nifti_raw_modalities_niiQuery.csv': '/home/aa-cxk023/share/files/nifti_raw_modalities_niiQuery.csv'
         }
     }
 

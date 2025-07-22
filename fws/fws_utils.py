@@ -1,4 +1,5 @@
 import glob
+import inspect
 import os
 import shutil
 import subprocess
@@ -573,14 +574,17 @@ def fws_translate_file_path(file_path, scratch_path, fileset=None):
         # print("final downloaded path:", downloaded_path)
         # download to scratch space
         downloaded_file_path = f'{downloaded_path}{os.path.sep}{os.path.basename(file_path)}'
-        fw_client = uwhealthaz_client()
-        try:
-            return fws_download_file_from_flywheel(fw_client, file_path, downloaded_file_path)
 
-        except flywheel.rest.ApiException as e:
-            # if this is an output file in flywheel, it has not been created yet, but the rest of the goo needs to be done!
-            print("exception ", e)
-            return downloaded_file_path
+        # 2025-07 csk could be dedicated scratch space, don't download if it already exists!
+        if not os.path.exists(downloaded_file_path):
+            fw_client = uwhealthaz_client()
+            try:
+                return fws_download_file_from_flywheel(fw_client, file_path, downloaded_file_path)
+
+            except flywheel.rest.ApiException as e:
+                # if this is an output file in flywheel, it has not been created yet, but the rest of the goo needs to be done!
+                print("exception ", e)
+                return downloaded_file_path
 
     else:
         return file_path
@@ -607,17 +611,27 @@ def fws_update_processors():
 
 # fws_update_processors()
 
-def parse_classification(file, max_size):
+def parse_classification(file):
     try:
+        file = file.reload()
         intent = file.classification['Intent'] if file.classification.get('Intent') is not None else []
-        i_size = [file.classification.get("Rows"), file.classification.get("Columns"), file.classification.get("Columns"),]
-        print("print_classification", i_size, max_size)
+
+        # TODO: 2025-07 csk image size to add to criteria at some point
+        # if file.info.get('header') is not None:
+        #    if file.info['header'].get('dicom') is not None:
+        #        i_size = [file.info['header']['dicom']["Rows"], file.info['header']['dicom']["Columns"], len(file.info['header']['dicom_array'])]
+        # else:
+        #    i_size = [0, 0, 0]
 
         if 'Structural' not in intent:
             return 'XX'
         elif file.classification.get("Features") is not None and 'FLAIR' in file.classification.get("Features"):
             return 'FLAIR'
         elif 'T1' in file.classification.get('Measurement'):
+            if file.info.get('header') is not None:
+                if file.info['header'].get('dicom') is not None:
+                    if file.info['header']['dicom'].get('ContrastBolusRoute') is not None:
+                        return 'T1c'
             return 'T1'
         elif 'T2' in file.classification.get('Measurement'):
             return 'T2'
@@ -636,29 +650,33 @@ def parse_nifti_tags(file):
         return 'FLAIR'
     return 'XX'
 
-def fws_assign_modalities(dicom_fileset, nifti_fileset, modalities=fws_modalities):
+def fws_assign_modalities(dicom_fileset, nifti_fileset, modalities=fws_modalities, ignore_nifti_tags=True):
     file_names = {}
+    used_dicoms = [file.name.replace('.nii.gz', '.dicom.zip') for file in nifti_fileset.get_flywheel_file_objects()]
     if fws_is_flywheel_path(nifti_fileset.original_path):
-
+        max_size = [0, 0, 0]
         for modality in modalities:
             # first, get assigned modality from nifti tag
-            for file in nifti_fileset.get_flywheel_file_objects():
-                modality_nifti = parse_nifti_tags(file)
-                if modality_nifti == modality:
-                    # found it!
-                    file_names[modality] = file.name
-                    break
+            if ignore_nifti_tags:
+                for file in nifti_fileset.get_flywheel_file_objects():
+                    file = file.reload()
+                    modality_nifti = parse_nifti_tags(file)
+                    if modality_nifti == modality:
+                        # found it!
+                        file_names[modality] = file.name
+                        break
+
             if modality not in file_names.keys():
                 # second, get largest file from dicoms
                 for file in dicom_fileset.get_flywheel_file_objects():
-                    max_size = [0, 0, 0]
-                    modality_dicom = parse_classification(file, max_size)
+                    modality_dicom = parse_classification(file)
+                    if not file.name in used_dicoms:
+                        continue
+
                     if modality_dicom == modality:
                         # found one!
                         file_names[modality] = file.name
                         break
-                        # max_size =
-
     return file_names
 
 def fws_add_script(container, script_info):
@@ -689,3 +707,36 @@ def fws_has_more_scripts(container):
     info = container.info
     scripts = info.get('scripts', [])
     return len(scripts) > 0
+
+def fws_load_active_processors2():
+    import importlib
+    processor_path = f'{os.path.dirname(os.path.dirname(__file__))}/processors'
+    for processor_class_path in glob.glob(f'{processor_path}/*'):
+        processor_label = os.path.basename(processor_class_path)
+        if not processor_label.endswith('_processor'):
+            continue
+        if processor_label in ['test_processor', 'template_processor']:
+            continue
+        processor_code_path = f'{processor_class_path}{os.path.sep}processor_app.py'
+        processor_module = importlib.import_module(f"radlib.processors.{processor_label}.processor_app")
+        print(processor_label, processor_code_path)
+        classes = inspect.getmembers(processor_module, inspect.isclass)
+
+        # Print class names
+        for class_name, _ in classes:
+            print(class_name)
+
+def fws_load_active_processors():
+    processors_path = f'{os.path.dirname(os.path.dirname(__file__))}{os.path.sep}processors{os.path.sep}__init__.py'
+    processors_path = '//onfnas01.uwhis.hosp.wisc.edu/radiology/Groups/GarrettGroup/Users/Carl/radlib/radlib/processors/__init__.py'
+    print(processors_path)
+    exec(repr(processors_path))
+    print_classes()
+    # tmp = RrsRadsurvProcessor()
+
+import sys, inspect
+def print_classes():
+    for name, obj in inspect.getmembers(sys.modules[__name__]):
+        if inspect.isclass(obj):
+            print(obj)
+

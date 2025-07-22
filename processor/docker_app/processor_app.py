@@ -42,6 +42,7 @@ class RrsRadsurvProcessor(Processor):
             preprocessed = self.get_fileset('preprocessed')
             self.log_path = f'/logs'
             fws_create_paths([self.log_path])
+            print(f">>>>{self.log_path}<<<<")
 
             # ingest
             sorter = DicomSorter('/dicom_raw',
@@ -63,9 +64,10 @@ class RrsRadsurvProcessor(Processor):
                 copy_from = niiQuery.get_local_paths()[0]
             except FWSFileSetException:
                 # generate from tags
-                copy_from = f'{self.scratch_path}/tmp.csv'
+                copy_from = f'{self.scratch_path}/niiQuery.csv'
                 with open(copy_from, 'w') as f:
                     mods = fws_assign_modalities(dicom_raw, nifti_raw)
+                    print(subject_label, session_label, mods)
                     if len(mods) < 4:
                         raise Exception("not enough modalities were identified!")
                     f.write('ID,time_point,acquisition_tag,mri_modalities (original nifti),n_modalities_per_case,included_modality,mri_tag\n')

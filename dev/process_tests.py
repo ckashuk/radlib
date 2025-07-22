@@ -1,5 +1,5 @@
 from radlib.processor import Processor
-from processors.rrs_radsurv_processor.radservice_app import RRSRadSurvProcessor
+from processors.rrs_radsurv_processor.processor_app import RRSRadSurvProcessor
 
 process1 = Processor()
 process2 = RRSRadSurvProcessor()

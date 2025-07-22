@@ -3,6 +3,7 @@ import sys
 import tempfile
 import time
 import logging
+import yaml
 
 import flywheel
 
@@ -10,9 +11,9 @@ root_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.append(root_path)
 from radlib.fw.flywheel_clients import uwhealthaz_client
 from radlib.processor.processor import Processor
-from radlib.fws.fws_utils import fws_is_flywheel_path, fws_has_more_scripts, fws_get_next_script
+from radlib.fws.fws_utils import fws_is_flywheel_path, fws_has_more_scripts, fws_get_next_script, fws_resolve_object
 
-from radlib.processors.rrs_radsurv_processor.radservice_app import RrsRadsurvProcessor
+from radlib.processors.rrs_radsurv_processor.processor_app import RrsRadsurvProcessor
 
 
 class FlywheelWatcherException(Exception):
@@ -20,20 +21,25 @@ class FlywheelWatcherException(Exception):
 
 # TODO: 202507 csk add
 class FlywheelWatcher():
-    def __init__(self, watch_path, scratch_path=None):
-        self.watch_path = watch_path
-        if not fws_is_flywheel_path(self.watch_path):
-            raise FlywheelWatcherException(f'{watch_path} is not a valid Flywheel path!')
+    def __init__(self, config_path, scratch_path=None):
+        self.config = FlywheelWatcher.load_config(config_path)
         self.scratch_path = tempfile.mkdtemp() if scratch_path is None else scratch_path
         self.watch_log_path = f'{self.scratch_path}/{self.watch_name()}.log'
         self.active = True
         self.fw_client = uwhealthaz_client()
 
+        self.active_processors = {'rrs_radsurv_processor': RrsRadsurvProcessor, 'rrs_radsurv': RrsRadsurvProcessor}
+
+    @staticmethod
+    def load_config(config_path):
+        with open(config_path, 'r') as yaml_path:
+            script_info = yaml.safe_load(yaml_path)
+        return script_info
+
     def watch_name(self):
-        name = self.watch_path
-        if name.endswith('in'):
-            name = os.path.dirname(name)
-        return os.path.basename(name)
+        if self.config.get('watch_name') is not None:
+            return self.config.get('watch_name')
+        return 'unnamed_watcher'
 
     def watch(self):
         # csk need to get the logger again when run in a separate process!
@@ -45,20 +51,29 @@ class FlywheelWatcher():
             datefmt='%Y-%m-%d %H:%M:%S')
 
         while self.active:
-            print("watch", self.watch_path)
-            # check analysis
-            analysis = self.fw_client.resolve(f'{self.watch_path.replace("fw://", "")}/files')['path'][-1]
 
-            while fws_has_more_scripts(analysis):
+            # for each project being watched
+            for project_def in self.config.get('projects', []):
+                watch_path = f'{project_def.get("group_label", "")}/{project_def.get("project_label", "")}/analyses/{project_def.get("analysis_label", "")}'
+                print(f"watch {watch_path}...")
+                # check for analysis, create if it does not exist
                 try:
-                    # print("download to:", f'{self.scratch_path}/script.yaml')
-                    script_info = fws_get_next_script(analysis, remove=True)
-                    script_path = f'{self.scratch_path}/script.yaml'
-                    Processor.save_script(script_info, script_path)
-                    RrsRadsurvProcessor.run_processor(scratch_path=self.scratch_path, script_path=script_path)
-                except OverflowError as e:
-                    print("Exception", e)
-                    continue
+                    analysis = self.fw_client.resolve(f'{watch_path}')['path'][-1]
+                except Exception:
+                    # raise FlywheelWatcherException(f"analysis {watch_path} does not exist!")
+                    project = self.fw_client.resolve(f'{project_def.get("group_label", "")}/{project_def.get("project_label", "")}')['path'][-1]
+                    analysis = project.add_analysis(label=project_def.get("analysis_label"))
+                while fws_has_more_scripts(analysis):
+                    try:
+                        script_info = fws_get_next_script(analysis, remove=True)
+                        script_path = f'{self.scratch_path}/script.yaml'
+                        Processor.save_script(script_info, script_path)
+                        processor = self.active_processors.get(script_info['base_image'])
+                        processor.run_processor(scratch_path=self.scratch_path, script_path=script_path)
+
+                    except OverflowError as e:
+                        print("Exception", e)
+                        continue
 
             # pause?
             time.sleep(5)
@@ -85,6 +100,6 @@ project = fw_client.resolve('brucegroup/GBM Cohort IDiA')['path'][-1]
 project = project.reload()
 analysis = add_analysis(project, analysis_label)
 
-watcher = FlywheelWatcher(f"fw://brucegroup/GBM Cohort IDiA/analyses/{analysis_label}", "/home/aa-cxk023/share/scratch")
+watcher = FlywheelWatcher("flywheel_watcher_config.yaml", "/home/aa-cxk023/share/scratch")
 
 watcher.watch()

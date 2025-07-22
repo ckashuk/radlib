@@ -10,9 +10,10 @@ services:
             count: all
             driver: nvidia
     environment:
-      nifti_raw_MOUNT_POINT: /home/aa-cxk023/share/scratch/rrs_radsurv_processor_1751985584.065429
+      dicom_raw_MOUNT_POINT: /home/aa-cxk023/share/scratch/RRS_RadSurv_Processor_1749248588.330328
+      nifti_raw_MOUNT_POINT: /home/aa-cxk023/share/scratch/RRS_RadSurv_Processor_1749248588.330328
       nifti_raw_modalities_niiQuery.csv_MOUNT_POINT: /home/aa-cxk023/share/files
-      preprocessed_MOUNT_POINT: /home/aa-cxk023/share/scratch/rrs_radsurv_processor_1751985584.065429
+      preprocessed_MOUNT_POINT: /home/aa-cxk023/share/scratch/RRS_RadSurv_Processor_1749248588.330328
     image: rrs_radsurv_processor
     ipc: host
     ports:
@@ -20,13 +21,15 @@ services:
     stdin_open: true
     tty: true
     volumes:
-    - /home/aa-cxk023/share/scratch/rrs_radsurv_processor_1751985584.065429:/scratch
+    - /home/aa-cxk023/share/scratch/RRS_RadSurv_Processor_1749248588.330328:/scratch
     - /mnt/RadServiceCache/files:/files
-    - /home/aa-cxk023/share/scratch/rrs_radsurv_processor_1751985584.065429/nifti_raw:/nifti_raw
+    - /home/aa-cxk023/share/scratch/RRS_RadSurv_Processor_1749248588.330328/dicom_raw:/dicom_raw
+    - /home/aa-cxk023/share/scratch/RRS_RadSurv_Processor_1749248588.330328/nifti_raw:/nifti_raw
     - /home/aa-cxk023/share/files/nifti_raw_modalities_niiQuery.csv:/nifti_raw_modalities_niiQuery.csv
-    - /home/aa-cxk023/share/scratch/rrs_radsurv_processor_1751985584.065429/preprocessed:/preprocessed
-    - /home/aa-cxk023/share/gbm_seg//active/RAD-AI-CNS-TUMOR-0104_20120619_rrs_radsurv.yaml:/script.yaml
+    - /home/aa-cxk023/share/scratch/RRS_RadSurv_Processor_1749248588.330328/preprocessed:/preprocessed
+    - /home/aa-cxk023/share/radlib/radlib/processors/rrs_radsurv_processor/rrs_radsurv_processor_test_script.yaml:/script.yaml
 volumes:
+  dicom_raw: null
   files: null
   nifti_raw: null
   nifti_raw_modalities_niiQuery.csv: null

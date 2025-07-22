@@ -298,7 +298,7 @@ class DicomSorter:
         return False
 
 
-    def move(self):
+    def move(self, replace_dicoms=False, replace_niftis=False):
         fw_client = uwhealthaz_client()
 
         try:
@@ -337,7 +337,8 @@ class DicomSorter:
                     for usable_path in glob.glob(f'{dicom_path}/*.dcm'):
                         zip_file.write(usable_path, arcname=os.path.basename(usable_path))
                 zip_file.close()
-                acquisition.upload_file(zip_path)
+                if replace_dicoms:
+                    acquisition.upload_file(zip_path)
                 # shutil.rmtree(dicom_path)
                 # try:
                 #     os.remove(zip_path)
@@ -347,7 +348,8 @@ class DicomSorter:
             # niftis
             acquisition = get_fw_acquisition(fw_client, group, project, subject, session, 'nifti_raw')
             for nii_path in nii_paths:
-                acquisition.upload_file(nii_path)
+                if replace_niftis:
+                    acquisition.upload_file(nii_path)
                 # try:
                 #     os.remove(nii_path)
                 # except Exception as e:
