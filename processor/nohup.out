@@ -1,0 +1,72 @@
+watch brucegroup/GBM Cohort IDiA/analyses/rrs_radsurv...
+watch idia_group/UPenn Cohort/analyses/rrs_radsurv...
+watch idia_group/CHTC Peds/analyses/rrs_radsurv...
+watch brucegroup/GBM Cohort IDiA/analyses/rrs_radsurv...
+watch idia_group/UPenn Cohort/analyses/rrs_radsurv...
+watch idia_group/CHTC Peds/analyses/rrs_radsurv...
+watch brucegroup/GBM Cohort IDiA/analyses/rrs_radsurv...
+watch idia_group/UPenn Cohort/analyses/rrs_radsurv...
+watch idia_group/CHTC Peds/analyses/rrs_radsurv...
+watch brucegroup/GBM Cohort IDiA/analyses/rrs_radsurv...
+watch idia_group/UPenn Cohort/analyses/rrs_radsurv...
+watch idia_group/CHTC Peds/analyses/rrs_radsurv...
+Traceback (most recent call last):
+  File "/home/aa-cxk023/share/radlib/radlib/processor/flywheel_watcher.py", line 106, in <module>
+    watcher.watch()
+  File "/home/aa-cxk023/share/radlib/radlib/processor/flywheel_watcher.py", line 86, in watch
+    time.sleep(5)
+KeyboardInterrupt
+watch brucegroup/GBM Cohort IDiA/analyses/rrs_radsurv...
+watch idia_group/UPenn Cohort/analyses/rrs_radsurv...
+watch idia_group/CHTC Peds/analyses/rrs_radsurv...
+watch brucegroup/GBM Cohort IDiA/analyses/rrs_radsurv...
+Traceback (most recent call last):
+  File "/home/aa-cxk023/share/radlib/radlib/processor/flywheel_watcher.py", line 106, in <module>
+    watcher.watch()
+  File "/home/aa-cxk023/share/radlib/radlib/processor/flywheel_watcher.py", line 67, in watch
+    analysis = analysis.reload()
+  File "/usr/local/lib/python3.10/dist-packages/flywheel/models/mixins.py", line 83, in reload
+    return self._invoke_container_api("get_{}", self.id)
+  File "/usr/local/lib/python3.10/dist-packages/flywheel/models/mixins.py", line 41, in _invoke_container_api
+    return fn(*args, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/flywheel/flywheel.py", line 1216, in get_analysis
+    return self.analyses_api.get_analysis(analysis_id, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/flywheel/api/analyses_api.py", line 2340, in get_analysis
+    (data) = self.get_analysis_with_http_info(analysis_id, **kwargs)  # noqa: E501
+  File "/usr/local/lib/python3.10/dist-packages/flywheel/api/analyses_api.py", line 2415, in get_analysis_with_http_info
+    return self.api_client.call_api(
+  File "/usr/local/lib/python3.10/dist-packages/flywheel/api_client.py", line 426, in call_api
+    return self.__call_api(resource_path, method,
+  File "/usr/local/lib/python3.10/dist-packages/flywheel/api_client.py", line 209, in __call_api
+    response_data = self.request(
+  File "/usr/local/lib/python3.10/dist-packages/flywheel/api_client.py", line 448, in request
+    return self.rest_client.GET(url,
+  File "/usr/local/lib/python3.10/dist-packages/flywheel/rest.py", line 243, in GET
+    return self.request("GET", url,
+  File "/usr/local/lib/python3.10/dist-packages/flywheel/rest.py", line 222, in request
+    r = self.session.request(method, url,
+  File "/usr/local/lib/python3.10/dist-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+  File "/usr/local/lib/python3.10/dist-packages/requests/adapters.py", line 667, in send
+    resp = conn.urlopen(
+  File "/usr/local/lib/python3.10/dist-packages/urllib3/connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+  File "/usr/local/lib/python3.10/dist-packages/urllib3/connectionpool.py", line 534, in _make_request
+    response = conn.getresponse()
+  File "/usr/local/lib/python3.10/dist-packages/urllib3/connection.py", line 516, in getresponse
+    httplib_response = super().getresponse()
+  File "/usr/lib/python3.10/http/client.py", line 1375, in getresponse
+    response.begin()
+  File "/usr/lib/python3.10/http/client.py", line 318, in begin
+    version, status, reason = self._read_status()
+  File "/usr/lib/python3.10/http/client.py", line 279, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+  File "/usr/lib/python3.10/socket.py", line 705, in readinto
+    return self._sock.recv_into(b)
+  File "/usr/lib/python3.10/ssl.py", line 1303, in recv_into
+    return self.read(nbytes, buffer)
+  File "/usr/lib/python3.10/ssl.py", line 1159, in read
+    return self._sslobj.read(len, buffer)
+KeyboardInterrupt

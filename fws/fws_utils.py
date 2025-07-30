@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
+import re
 
 import flywheel
 from IPython.terminal.shortcuts.auto_match import double_quote
@@ -213,16 +214,40 @@ def fws_resolve_object(fw_client: flywheel.Client, fw_path:str, fw_type:str='pro
 
 
 def fws_expand_flywheel_path(fw_path, logger=None):
-
     # will always need the acquisition object to download files from
     fw_client = uwhealthaz_client()
-    # fws_generate_tree(fw_client, fw_path)
-    acquisition = fws_resolve_object(fw_client, fw_path,'acquisition')
 
-    # if '*' in fw_path, download all files from the acquisition, otherwise download the one specificed file
-    expanded_fw_paths = [fws_separate_flywheel_labels(fw_path)[5]]
-    if fw_path.endswith('*'):
-        expanded_fw_paths = [f'{os.path.dirname(fw_path)}/{file.name}' for file in acquisition.files]
+    # fws_generate_tree(fw_client, fw_path)
+    fw_usable_path = fw_path
+    fw_usable_suffix = ""
+    expanded_fw_paths = []
+
+    if '*/*' in fw_usable_path:
+        # assume acquisition and filename are the same
+        fw_usable_path, fw_usable_suffix = fw_usable_path.split('*/*')
+        if fw_usable_path.endswith('/'):
+            fw_usable_path = fw_usable_path[0:-1]
+        session = fw_client.resolve(fw_usable_path.replace("fw://", ""))['path'][-1]
+        for acquisition in session.acquisitions():
+            for file in acquisition.files:
+                if len(fw_usable_suffix)>0 and not file.name.endswith(fw_usable_suffix):
+                    continue
+                expanded_fw_paths.append(f'{fw_usable_path}{acquisition.label}/{file.name}')
+
+    elif '*' in fw_usable_path:
+        # assume all filenames for acquisition
+        fw_usable_path, fw_usable_suffix = fw_usable_path.split('*')
+        if fw_usable_path.endswith('/'):
+            fw_usable_path = fw_usable_path[0:-1]
+        acquisition = fw_client.resolve(fw_usable_path.replace("fw://", ""))['path'][-1]
+        for file in acquisition.files:
+            if len(fw_usable_suffix) > 0 and not file.name.endswith(fw_usable_suffix):
+                continue
+            expanded_fw_paths.append(f'{fw_usable_path}{file.name}')
+
+    else:
+        # single file
+        expanded_fw_paths.append(fw_usable_path)
 
     return expanded_fw_paths
 
@@ -289,6 +314,9 @@ def fws_download_file_from_flywheel(fw_client, fw_path, local_path, do_download=
     """
 
     # will always need the acquisition object to download files from
+    print("fws_download_file_from_flywheel")
+    print(fw_path)
+    print(local_path)
     acquisition = fws_resolve_object(fw_client, fw_path, 'acquisition')
     file = fws_resolve_object(fw_client, fw_path, 'file')
     if os.path.isdir(local_path):
@@ -537,22 +565,76 @@ def fws_contains_subfolder(folder_path):
             return True
     return False
 
+def wildcard_to_regex(pattern):
+    # Escape everything except the wildcard '*', then replace '*' with '.*'
+    pattern = re.escape(pattern).replace(r'\*', '.*')
+    # Ensure full-string match
+    return f'^{pattern}$'
+
+def match(s, wildcard_pattern):
+    # Compile regex from wildcard
+    regex = re.compile(wildcard_to_regex(wildcard_pattern))
+
+    # Filter strings that match
+    # print("match", s, wildcard_pattern, wildcard_to_regex(wildcard_pattern), regex.match(s))
+    return regex.match(s)
+
 def fws_expand_file_path(file_path):
     # expand any * into the list of files
-    expanded_paths = [file_path]
-    if file_path.endswith('*'):
-        if fws_is_flywheel_path(file_path):
-            # flywheel path, have to use client to find out what files are there
-            expanded_paths = fws_expand_flywheel_path(file_path)
-        else:
-            # local storage path, glob for files, use ** to get files from subfolders if present
-            if os.path.exists(os.path.dirname(file_path)):
-                if fws_contains_subfolder(os.path.dirname(file_path)):
-                    expanded_paths = glob.glob(f'{file_path}*{os.path.sep}*')
-                else:
-                    expanded_paths = glob.glob(file_path)
+    fw_client = uwhealthaz_client()
 
-    return expanded_paths
+    if not '*' in file_path:
+        # no wildcards
+        return [file_path]
+
+    delim = os.path.sep
+    is_flywheel_path = False
+    if fws_is_flywheel_path(file_path):
+        file_path = file_path.replace("fw://", '/')
+        is_flywheel_path = True
+        delim = '/'
+
+    paths = []
+    for folder in file_path.split(delim):
+        if '*' not in folder:
+            if len(paths)==0:
+                paths = [folder]
+            else:
+                paths = [f'{path}/{folder}' for path in paths]
+        else:
+            new_paths = []
+            for path in paths:
+                if is_flywheel_path:
+                    try:
+                        object = fw_client.resolve(path[1:])['path'][-1]
+                    except Exception:
+                        # does not exist yet
+                        return []
+
+                    if object.container_type == 'acquisition':
+                        for file in object.files:
+                            if match(file.name, folder):
+                                new_paths.append(f'{path}/{file.name}')
+                    elif object.container_type == 'session':
+                        for acquisition in object.acquisitions():
+                            if match(acquisition.label, folder):
+                                new_paths.append(f'{path}/{acquisition.label}')
+                    if object.container_type == 'subject':
+                        for session in object.sessions():
+                            if match(session.label, folder):
+                                new_paths.append(f'{path}/{session.label}')
+                    elif object.container_type == 'project':
+                        for subject in object.subjects():
+                            if match(subject.label, folder):
+                                new_paths.append(f'{path}/{subject.label}')
+
+                else:
+                    subpaths = glob.glob(f'{path}/*')
+                    for path in subpaths:
+                        new_paths.append(path)
+                paths = new_paths
+
+    return paths
 
 def fws_translate_file_path(file_path, scratch_path, fileset=None):
     # external_files are the file paths that are pointed to in the file system (non-local items such as
@@ -574,17 +656,7 @@ def fws_translate_file_path(file_path, scratch_path, fileset=None):
         # print("final downloaded path:", downloaded_path)
         # download to scratch space
         downloaded_file_path = f'{downloaded_path}{os.path.sep}{os.path.basename(file_path)}'
-
-        # 2025-07 csk could be dedicated scratch space, don't download if it already exists!
-        if not os.path.exists(downloaded_file_path):
-            fw_client = uwhealthaz_client()
-            try:
-                return fws_download_file_from_flywheel(fw_client, file_path, downloaded_file_path)
-
-            except flywheel.rest.ApiException as e:
-                # if this is an output file in flywheel, it has not been created yet, but the rest of the goo needs to be done!
-                print("exception ", e)
-                return downloaded_file_path
+        return downloaded_file_path
 
     else:
         return file_path

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import yaml
 from flywheel_gear_toolkit import GearToolkitContext
+import os
 
 def fws_add_script(container, script_info):
     container = container.reload()
@@ -19,7 +20,9 @@ fw_client = gear_context.client
 
 # Get the analysis container object from Flywheel where this gear was started (session)
 analysis_from = fw_client.get(gear_context.destination["id"])
-
+analysis_from = analysis_from.reload()
+# if analysis_from.get('active') is None:
+#    raise Exception(f'Processor is not active for {os.path.basename(os.path.dirname(__file__))}!')
 # get the parents of this analysis to build the script
 group_id = analysis_from.parents["group"]
 project = fw_client.get_project(analysis_from.parents["project"])
@@ -31,8 +34,8 @@ session = fw_client.get(analysis_from.parents["session"])
 script_info = {
     'base_image': 'rrs_radsurv',
     'filesets': {
-        'dicom_raw': f'fw://{group_id}/{project.label}/{subject.label}/{session.label}/dicom_raw/*',
-        'nifti_raw': f'fw://{group_id}/{project.label}/{subject.label}/{session.label}/nifti_raw/*',
+        'dicom_raw': f'fw://{group_id}/{project.label}/{subject.label}/{session.label}/*/*.dicom.zip',
+        'nifti_raw': f'fw://{group_id}/{project.label}/{subject.label}/{session.label}/*/*.nii.gz',
         'preprocessed': f'fw://{group_id}/{project.label}/{subject.label}/{session.label}/preprocessed/*',
         # 'nifti_raw_modalities_niiQuery.csv': '/home/aa-cxk023/share/files/nifti_raw_modalities_niiQuery.csv'
         }
@@ -47,4 +50,4 @@ try:
 
 except Exception as e:
     print("exception", e)
-    print(f"Not connected to a processor for {script_info['base_image']}!")
+    raise Exception(f'Not connected to a processor for {script_info["base_image"]}!')

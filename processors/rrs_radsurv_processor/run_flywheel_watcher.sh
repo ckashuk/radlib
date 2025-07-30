@@ -2,9 +2,10 @@
 clear
 sudo rm -rf docker_app start_docker.sh
 sudo docker image rm -f ${PWD##*/}
-if [ -z "$2" ]
+cd ../../processor
+if [ -z "$1" ]
   then
-     sudo nohup python3 radservice_app.py --scratch_path /home/aa-cxk023/share/scratch
+     sudo nohup python3 flywheel_watcher.py
 else
-     sudo python3 radservice_app.py --scratch_path /home/aa-cxk023/share/scratch
+     sudo python3 flywheel_watcher.py
 fi

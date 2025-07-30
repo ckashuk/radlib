@@ -22,63 +22,69 @@ class RrsRadsurvProcessor(Processor):
         t1 = time.time()
 
         try:
+            # get filesets
             dicom_raw = self.get_fileset('dicom_raw')
-            files_dicom_raw = dicom_raw.get_local_paths()
             nifti_raw = self.get_fileset('nifti_raw')
+
+            # TODO: 2025-07 csk is this all necessary?
             if fws_is_flywheel_path(nifti_raw.original_path):
-                group_label = fws_separate_flywheel_labels(nifti_raw.original_path)[0]
-                project_label = fws_separate_flywheel_labels(nifti_raw.original_path)[1]
-                subject_label = fws_separate_flywheel_labels(nifti_raw.original_path)[2]
-                session_label = fws_separate_flywheel_labels(nifti_raw.original_path)[3]
-                acquisition = 'Baseline'
+                flywheel_labels = fws_separate_flywheel_labels(nifti_raw.original_path)
+                group_label = flywheel_labels[0]
+                project_label = flywheel_labels[1]
+                subject_label = flywheel_labels[2]
+                session_label = flywheel_labels[3]
+                acquisition_label = 'Baseline'
             else:
                 # TODO: 202507 csk get subject label from local file path somehow
                 group_label = 'group'
                 project_label = 'project'
                 subject_label = 'subject'
                 session_label = 'session'
-                acquisition = 'Baseline'
+                acquisition_label = 'Baseline'
 
             preprocessed = self.get_fileset('preprocessed')
-            self.log_path = f'/logs'
+            self.log_path = f'{self.scratch_path}/{self.get_unique_name()}.log'
             fws_create_paths([self.log_path])
-            print(f">>>>{self.log_path}<<<<")
 
-            # ingest
-            sorter = DicomSorter('/dicom_raw',
-                                 f'{self.scratch_path}/dicom_sorted',
-                                 converted_folder='/nifti_raw',
-                                 preserve_input_files=False,
-                                 send_to_flywheel=True,
-                                 service=False,
-                                 flywheel_group=group_label,
-                                 flywheel_project=project_label,
-                                 logger=self.logger)
-            sorter.start()
+            if dicom_raw is not None:
+                # ingest from dicom files
+                # pull them down first!
+                dicom_raw.load_local_files()
+                sorter = DicomSorter('/dicom_raw',
+                                     f'{self.scratch_path}/dicom_sorted',
+                                     converted_folder='/nifti_raw',
+                                     preserve_input_files=False,
+                                     send_to_flywheel=True,
+                                     service=False,
+                                     flywheel_group=group_label,
+                                     flywheel_project=project_label,
+                                     logger=self.logger)
+                sorter.start()
 
-            # modalities
-            # get hardcoded file
-            # TODO: 202505 csk need to find better way for this!
-            try:
-                niiQuery = self.get_fileset('nifti_raw_modalities_niiQuery.csv')
-                copy_from = niiQuery.get_local_paths()[0]
-            except FWSFileSetException:
-                # generate from tags
-                copy_from = f'{self.scratch_path}/niiQuery.csv'
-                with open(copy_from, 'w') as f:
-                    mods = fws_assign_modalities(dicom_raw, nifti_raw)
-                    print(subject_label, session_label, mods)
-                    if len(mods) < 4:
-                        raise Exception("not enough modalities were identified!")
-                    f.write('ID,time_point,acquisition_tag,mri_modalities (original nifti),n_modalities_per_case,included_modality,mri_tag\n')
-                    for mod, file_name in mods.items():
-                        f.write(f'{subject_label},{session_label},{acquisition},{file_name.replace(".dicom.zip", ".nii.gz")},4,TRUE,{mod}\n')
+                # modalities
+                # get hardcoded file
+                # TODO: 202505 csk need to find better way for this!
+                try:
+                    niiQuery = self.get_fileset('nifti_raw_modalities_niiQuery.csv')
+                    copy_from = niiQuery.get_local_paths()[0]
+                except FWSFileSetException:
+                    # generate from tags
+                    copy_from = f'{self.scratch_path}/niiQuery.csv'
+                    with open(copy_from, 'w') as f:
+                        mods = fws_assign_modalities(dicom_raw, nifti_raw)
+                        print(subject_label, session_label, mods)
+                        if len(mods) < 4:
+                            raise Exception("not enough modalities were identified!")
+                        f.write('ID,time_point,acquisition_tag,mri_modalities (original nifti),n_modalities_per_case,included_modality,mri_tag\n')
+                        for mod, file_name in mods.items():
+                            f.write(f'{subject_label},{session_label},{acquisition_label},{file_name.replace(".dicom.zip", ".nii.gz")},4,TRUE,{mod}\n')
 
-            copy_to = f'{self.log_path}/nifti_raw_modalities_niiQuery.csv'
-            fws_copy_file(copy_from, copy_to)
+                copy_to = f'{self.log_path}/nifti_raw_modalities_niiQuery.csv'
+                fws_copy_file(copy_from, copy_to)
 
 
             # TODO: 202507 csk run ./bash_requirements.sh to install hd-bet until we find a better way to do it!
+            print("runit!")
             b = subprocess.Popen('/app/bash_requirements.sh', text=True)
             exit_code = b.wait()
 
@@ -162,8 +168,8 @@ class RrsRadsurvProcessor(Processor):
                 example_config['input']['single_scan']['t1c'] = f"{subject_label}_T1c_SRI24_SkullS_BiasC.nii.gz"
                 example_config['input']['single_scan']['t1'] = f"{subject_label}_T1_reg_SkullS_BiasC.nii.gz"
                 example_config['input']['single_scan']['t2'] = f"{subject_label}_T2_reg_SkullS_BiasC.nii.gz"
-                example_config['input']['data_dir'] = f"/{self.scratch_path}/preprocessed/{subject_label}/{acquisition}"
-                example_config['output']['file_path'] = f"/{self.scratch_path}/preprocessed/{subject_label}/{acquisition}/tumor_seg_swinUNETR.nii.gz"
+                example_config['input']['data_dir'] = f"/{self.scratch_path}/preprocessed/{subject_label}/{acquisition_label}"
+                example_config['output']['file_path'] = f"/{self.scratch_path}/preprocessed/{subject_label}/{acquisition_label}/tumor_seg_swinUNETR.nii.gz"
 
             with open(example_config_path, 'w') as path:
                 yaml.safe_dump(example_config, path, sort_keys=False)
@@ -171,11 +177,9 @@ class RrsRadsurvProcessor(Processor):
             # run process
             try:
                 command_text = ['python3', f'{self.code_path}/radiomics_rscore_main.py', f'{self.log_path}/{self.processor_name()}_run.log']
-                # self.logger.info(f"run unique process {command_text}")
-                # print(command_text)
                 p = subprocess.Popen(command_text, text=True)
                 exit_code = p.wait()
-                #  self.logger.info(f"run unique process {command_text} finished!!!")
+
             except Exception as e:
                 print(f"Error: {e}")
 

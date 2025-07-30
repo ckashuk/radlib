@@ -63,6 +63,13 @@ class FlywheelWatcher():
                     # raise FlywheelWatcherException(f"analysis {watch_path} does not exist!")
                     project = self.fw_client.resolve(f'{project_def.get("group_label", "")}/{project_def.get("project_label", "")}')['path'][-1]
                     analysis = project.add_analysis(label=project_def.get("analysis_label"))
+
+                analysis = analysis.reload()
+                info = analysis.info
+                info['active'] = True
+                info['script_template'] = {}  #rrs_radsurv_template
+                analysis.update_info(info)
+
                 while fws_has_more_scripts(analysis):
                     try:
                         script_info = fws_get_next_script(analysis, remove=True)
@@ -94,12 +101,6 @@ def add_analysis(object, analysis_label):
         # analysis already exists, have to find it
         return get_analysis(object, analysis_label)
 
-fw_client = uwhealthaz_client()
-analysis_label = 'rrs_radsurv'
-project = fw_client.resolve('brucegroup/GBM Cohort IDiA')['path'][-1]
-project = project.reload()
-analysis = add_analysis(project, analysis_label)
 
 watcher = FlywheelWatcher("flywheel_watcher_config.yaml", "/home/aa-cxk023/share/scratch")
-
 watcher.watch()

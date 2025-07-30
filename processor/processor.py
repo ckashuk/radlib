@@ -307,9 +307,9 @@ class Processor:
 
         # set up logging (based on script)
         if type(self.scratch_path) is tempfile.TemporaryDirectory:
-            self.log_path = f'{self.scratch_path}/{self.get_unique_name()}.log'
+            self.log_path = f'{self.scratch_path}/{self.get_unique_name()}2.log'
         else:
-            self.log_path = f'{self.scratch_path}/{self.get_unique_name()}.log'
+            self.log_path = f'{self.scratch_path}/{self.get_unique_name()}2.log'
         self.logger = logging.getLogger(self.processor_name())
         logging.basicConfig(
             filename=self.log_path,
@@ -415,7 +415,8 @@ class Processor:
     @staticmethod
     def load_script(script_path):
         # load the script
-        print("load_script", script_path)
+        if script_path is None:
+            return None
         with open(script_path, 'r') as yaml_path:
             script_info = yaml.safe_load(yaml_path)
         return script_info
@@ -445,9 +446,9 @@ class Processor:
             scratch_path = args.scratch_path
 
         script_info = Processor.load_script(script_path)
-        processor = cls(scratch_path=script_info.get("scratch_path", scratch_path), script_path=script_path)
         if fws_in_docker():
             # process
+            processor = cls(scratch_path=script_info.get("scratch_path", scratch_path), script_path=script_path)
             processor.process(script_path=script_path)
 
         elif script_info is not None:
@@ -456,6 +457,7 @@ class Processor:
                 # save scratch_path to script
                 script_info['scratch_path'] = scratch_path
                 Processor.save_script(script_info, script_path)
+            processor = cls(scratch_path=script_info.get("scratch_path", scratch_path), script_path=script_path)
             processor.run_dockerized()
 
         else:
@@ -466,6 +468,7 @@ class Processor:
 
 class Watcher():
     def __init__(self, watch_path, cls):
+        print("watch_path??", watch_path)
         self.watch_path = watch_path
         self.watch_log_path = f'{self.watch_path}/logs/{self.watch_name()}.log'
         os.makedirs(os.path.dirname(self.watch_log_path), exist_ok=True)

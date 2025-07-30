@@ -24,6 +24,17 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y git && \
     pip3 install flywheel-sdk flywheel-gear-toolkit pyyaml
 
+RUN pip3 --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org install --upgrade protobuf==3.20.1 pip setuptools wheel
+RUN pip3 --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org install pylibjpeg albumentations==1.3.1 tables ternausnet torchsummary nibabel==4.0.2 SimpleITK==2.3.1 numpy==1.24 argparse tensorboardX ipyvolume dipy nipype==1.10.0 dicom2nifti==2.6.1 pandas scikit-image scikit-learn joblib matplotlib easydict opencv-python mkl
+
+RUN pip --no-cache-dir --default-timeout=600 --trusted-host pypi.org --trusted-host files.pythonhosted.org --trusted-host pypi.ngc.nvidia.com --trusted-host developer.download.nvidia.com --trusted-host download.pytorch.org install torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124
+
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN pip --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org --trusted-host pypi.ngc.nvidia.com --trusted-host developer.download.nvidia.com install xlrd xlwt xlutils timm monai einops fire pytorch-ignite
+RUN pip --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org --trusted-host pypi.ngc.nvidia.com --trusted-host developer.download.nvidia.com install --upgrade monai
+RUN pip --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org --trusted-host pypi.ngc.nvidia.com --trusted-host developer.download.nvidia.com install TotalSegmentator==1.5.7
+
+
 # Copy run.py script to Flywheel spec path
 COPY run.py ${FLYWHEEL}/run.py
 

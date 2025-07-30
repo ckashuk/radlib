@@ -1,24 +1,77 @@
 #!/usr/bin/env python
-import yaml
-import glob
 from flywheel_gear_toolkit import GearToolkitContext
 
-from radlib.fws.fws_fileset import FWSFileSet
+import glob
+import json
+import subprocess
+import os
+import zipfile
 
-# Get the gear client
+# This is the flywheel gear code to run and parse an OSCAR analysis.
+# This gear will be run on an acquisition that contains a single dicom series
+# Outputs will go to that acquisition, and to an analysis connected to the acquisition.
+
+# get the analysis container object from the gear context
 gear_context = GearToolkitContext()
-
-# Grab client from gear context
 fw_client = gear_context.client
-
-# Get the analysis container object from Flywheel where this gear was started (session)
 analysis_from = fw_client.get(gear_context.destination["id"])
 
 # get the parents of this analysis to build the script
-group_id = analysis_from.parents["group"]
+# group_id = analysis_from.parents["group"]
 project = fw_client.get_project(analysis_from.parents["project"])
 subject = fw_client.get(analysis_from.parents["subject"])
 session = fw_client.get(analysis_from.parents["session"])
+acquisition = session.acquisitions()[0]
+file = acquisition.files[0]
 
-fs_renal = FWSFileSet('renal', 'fw://oscargroup/oscar_test_project/TCGA-B0-5702/CT ABDOMEN/2-ABD W_O/2 - ABD W_O.dicom.zip')
-print(fs_renal.get_local_paths())
+# make DICOMIn folder and fill with dcm slices from the file
+os.mkdir('/DICOMIn')
+zip_path = f'/DICOMIn/{file.name}'
+acquisition.download_file(file.name, zip_path)
+
+with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+    zip_ref.extractall('/DICOMIn')
+os.remove(zip_path)
+
+# add environment variable for base filename to use
+base_filename = f"{project.label}_{subject.label}_{session.label}".replace(' ', '_')
+os.environ["FILENAME"] = base_filename
+base_output_path = f'/OutputResults/{base_filename}/output'
+
+# run the command and wait for it to finish
+command_text = "/RUN_OSCAR_TOOLS.sh"
+p = subprocess.Popen(command_text, text=True, close_fds=True)
+exit_code = p.wait()
+
+# save Results.json as custom info to the acquisition
+# 2025-07 csk have to do this silly reload when using info
+acquisition = acquisition.reload()
+info = acquisition.info
+results_json_path = glob.glob(f'{base_output_path}/{base_filename}Results.json')[0]
+with open(results_json_path) as j:
+    oscar_toolkit = json.load(j)
+info['oscar_toolkit'] = oscar_toolkit
+acquisition.update_info(info)
+
+# save resampled dicoms to acqusition file
+"""
+resampled_dicom_zip_path = f'{base_output_path}/{file.name.replace(" ", "_")}_resampled.dicom.zip'
+with zipfile.ZipFile(resampled_dicom_zip_path, 'w') as zip:
+    for resampled_dicom_path in glob.glob(f'/{base_output_path}/dicomoriginal/*'):
+        zip.write(resampled_dicom_path, arcname=file.name)
+acquisition.upload_file(resampled_dicom_zip_path)
+os.remove(resampled_dicom_zip_path)
+"""
+
+# save other dcm files to acquisition
+# TODO: 2025-07 csk make new acquisition here if necessary
+for segment_dcm_path in glob.glob(f'/{base_output_path}/*.dcm'):
+    acquisition.upload_file(segment_dcm_path)
+
+# save other nii and jpg files to a new analysis
+oscar_analysis = file.add_analysis(label=f'oscar_{base_filename}')
+for output_nii_path in glob.glob(f'{base_output_path}/*.nii.gz'):
+    oscar_analysis.upload_file(output_nii_path)
+
+for output_jpg_path in glob.glob(f'/O{base_output_path}/*.jpg'):
+    oscar_analysis.upload_file(output_jpg_path)
