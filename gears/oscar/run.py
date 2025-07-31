@@ -14,8 +14,8 @@ import zipfile
 # Outputs will go to that acquisition, and to an analysis connected to the gear run.
 
 # change log:
-# 2026-07 csk    initial gear 0.9.0
-# 2026-07 csk    update "gear output files" (cannot use upload_file on flywheel gear analysis container!)
+# 2026-07 csk    gear 0.9.0 initial version
+# 2026-07 csk    gear 0.9.1 update "gear output files" (cannot use upload_file on flywheel gear analysis container!)
 
 # get the analysis container object from the gear context
 gear_context = GearToolkitContext()
