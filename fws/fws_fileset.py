@@ -224,8 +224,10 @@ class FWSFileSet:
         fw_client = uwhealthaz_client()
 
         for original_path, local_path in zip(self.original_paths, self.local_paths):
+            print(original_path, local_path)
             try:
                 returned_path = fws_download_file_from_flywheel(fw_client, original_path, local_path)
+                print(returned_path)
                 if returned_path != local_path:
                     print("returned_path != local_path!")
 
@@ -233,6 +235,7 @@ class FWSFileSet:
                 # if this is an output file in flywheel, it has not been created yet, but the rest of the goo needs to be done!
                 print("exception ", e)
                 return local_path
+        exit()
 
     def get_output_paths(self) -> list[str]:
         """

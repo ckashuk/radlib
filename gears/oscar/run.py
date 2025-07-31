@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import shutil
+
 from flywheel_gear_toolkit import GearToolkitContext
 
 import glob
@@ -7,9 +9,9 @@ import subprocess
 import os
 import zipfile
 
-# This is the flywheel gear code to run and parse an OSCAR analysis.
-# This gear will be run on an acquisition that contains a single dicom series
-# Outputs will go to that acquisition, and to an analysis connected to the acquisition.
+# This is the run.py code to run and parse an OSCAR analysis from a Flywheel gear.
+# This gear will be run on an acquisition that contains at least one dicom series.
+# Outputs will go to that acquisition, and to an analysis connected to the gear run.
 
 # get the analysis container object from the gear context
 gear_context = GearToolkitContext()
@@ -53,25 +55,20 @@ with open(results_json_path) as j:
 info['oscar_toolkit'] = oscar_toolkit
 acquisition.update_info(info)
 
-# save resampled dicoms to acqusition file
-"""
-resampled_dicom_zip_path = f'{base_output_path}/{file.name.replace(" ", "_")}_resampled.dicom.zip'
+# save resampled dicoms to acquisition file
+resampled_dicom_zip_path = f'{gear_context.output_dir}/{file.name.replace(" ", "_")}_resampled.dicom.zip'
 with zipfile.ZipFile(resampled_dicom_zip_path, 'w') as zip:
-    for resampled_dicom_path in glob.glob(f'/{base_output_path}/dicomoriginal/*'):
-        zip.write(resampled_dicom_path, arcname=file.name)
-acquisition.upload_file(resampled_dicom_zip_path)
-os.remove(resampled_dicom_zip_path)
-"""
+    for resampled_dicom_path in glob.glob(f'{base_output_path}/dicomoriginal/*'):
+        zip.write(resampled_dicom_path, f'/{os.path.basename(resampled_dicom_path)}')
 
 # save other dcm files to acquisition
 # TODO: 2025-07 csk make new acquisition here if necessary
 for segment_dcm_path in glob.glob(f'/{base_output_path}/*.dcm'):
     acquisition.upload_file(segment_dcm_path)
 
-# save other nii and jpg files to a new analysis
-oscar_analysis = file.add_analysis(label=f'oscar_{base_filename}')
+# save other nii and jpg files to the gear's analysis (via copy to output_dir)
 for output_nii_path in glob.glob(f'{base_output_path}/*.nii.gz'):
-    oscar_analysis.upload_file(output_nii_path)
+    shutil.copy(output_nii_path, f'{gear_context.output_dir}/{os.path.basename(output_nii_path)}')
 
-for output_jpg_path in glob.glob(f'/O{base_output_path}/*.jpg'):
-    oscar_analysis.upload_file(output_jpg_path)
+for output_jpg_path in glob.glob(f'{base_output_path}/*.jpg'):
+    shutil.copy(output_jpg_path, f'{gear_context.output_dir}/{os.path.basename(output_jpg_path)}')
