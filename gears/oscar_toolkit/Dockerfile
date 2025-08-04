@@ -2,7 +2,7 @@
 # Set base image to python:3.12.3-slim-bookworm using index digest hash to fix version
 # This version of python:3.12.3-slim-bookworm has OS: Debian 12 (bookworm) and python: 3.12.3
 # FROM --platform=linux/amd64 python@sha256:2be8daddbb82756f7d1f2c7ece706aadcb284bf6ab6d769ea695cc3ed6016743
-FROM nvcr.io/uwsmphrad/dandelionbodycomp/dandelionautomatedbodycomposition:1.0
+FROM  nvcr.io/uwsmphrad/oscarstudy/oscartoolkit:10.1
 
 # Flywheel spec (v0)
 ENV FLYWHEEL=/flywheel/v0

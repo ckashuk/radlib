@@ -2,7 +2,7 @@
   "name": "oscar-gear",
   "label": "OSCAR gear",
   "description": "This is a gear to run the OSCAR analysis on a given subject",
-  "version": "0.9.1",
+  "version": "0.9.18",
   "author": "Carl Kashuk",
   "maintainer": "Carl Kashuk <ckashuk@wisc.edu>",
   "cite": "",
@@ -47,7 +47,7 @@
   "custom": {
     "gear-builder": {
       "category": "analysis",
-      "image": "radiology/oscar-gear:0.9.1"
+      "image": "radiology/oscar-gear:0.9.18"
     },
     "flywheel": {
       "suite": "OSCAR"
@@ -57,8 +57,24 @@
     "api-key": {
       "base": "api-key",
       "read-only": true
+    },
+    "image_file": {
+      "base": "file",
+      "description": "Input volume as a zipped dicom file",
+      "optional": false,
+      "type": {
+        "enum": [
+          "dicom"
+        ]
+      }
     }
   },
-  "config": {},
+  "config": {
+    "override": {
+      "description": "Ignore the default rules for valid images",
+      "default": false,
+      "type": "boolean"
+    }
+  },
   "command": "python3 run.py"
 }

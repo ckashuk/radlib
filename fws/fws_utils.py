@@ -315,8 +315,10 @@ def fws_download_file_from_flywheel(fw_client, fw_path, local_path, do_download=
 
     # will always need the acquisition object to download files from
     print("fws_download_file_from_flywheel")
-    print(fw_path)
-    print(local_path)
+    if fw_path.startswith("/"):
+        fw_path = fw_path[1:]
+    print("fw_path", fw_path)
+    print("local_path", local_path)
     acquisition = fws_resolve_object(fw_client, fw_path, 'acquisition')
     file = fws_resolve_object(fw_client, fw_path, 'file')
     if os.path.isdir(local_path):

@@ -84,7 +84,6 @@ class RrsRadsurvProcessor(Processor):
 
 
             # TODO: 202507 csk run ./bash_requirements.sh to install hd-bet until we find a better way to do it!
-            print("runit!")
             b = subprocess.Popen('/app/bash_requirements.sh', text=True)
             exit_code = b.wait()
 
@@ -116,7 +115,6 @@ class RrsRadsurvProcessor(Processor):
             exit()
             """
             # edit config files manually
-            print("configs")
             self.code_path = '/app'  # '/home/aa-cxk023/share/RRS_RadSurv/'
 
             main_config_path = f'{self.code_path}/config/main_config.yaml'
