@@ -18,6 +18,10 @@ from flywheel_gear_toolkit import GearToolkitContext
 # 2026-07 csk    gear 0.9.1 update "gear output files" (cannot use upload_file on flywheel gear analysis container!)
 # 2026-08 csk    gear 0.9.10 add input file chooser, file filters and override
 log = logging.getLogger(__name__)
+log.setLevel(logging.INFO)
+input_label = 'image_file'
+override_label = 'Override image filtering'
+
 
 def get_metadata_for_flywheel_file(dicom_file, metadata_path:list[str]):
     """
@@ -38,8 +42,9 @@ def get_metadata_for_flywheel_file(dicom_file, metadata_path:list[str]):
     """
 
     # traverse the set of keys
-
     value = dicom_file
+    if dicom_file.get('object') is not None:
+        value = dicom_file.get('object')
     for key in metadata_path:
         value = None if value is None else value.get(key)
     return value
@@ -62,27 +67,35 @@ def run_oscar_tools(context: GearToolkitContext) -> None:
     fw_client = context.client
     analysis_from = fw_client.get(context.destination["id"])
 
+
     # get the gear parameters
-    image_file_name = context.get_input_filename('image_file')
-    override = context.config.get('override')
+    image_file = context.get_input(input_label)
+
+    image_file_parent_cont_id = image_file.get("hierarchy", {}).get("id")
+    image_file_parent_cont_type = image_file.get("hierarchy", {}).get("type")
+
+    getter = getattr(fw_client, f"get_{image_file_parent_cont_type}")
+    acquisition = getter(image_file_parent_cont_id)
+
+    # image_file_name = image_file.name
+    image_file_name = context.get_input_filename(input_label)
+    override = context.config.get(override_label)
 
     # get the parents of this analysis to build the script
     group_id = analysis_from.parents["group"]
     project = fw_client.get_project(analysis_from.parents["project"])
     subject = fw_client.get(analysis_from.parents["subject"])
     session = fw_client.get(analysis_from.parents["session"])
-    acquisition = fw_client.resolve(f'{group_id}/{project.label}/{subject.label}/{session.label}/{os.path.basename(image_file_name).replace(".dicom.zip", "")}')['path'][-1]
-    image_file = fw_client.resolve(f'{group_id}/{project.label}/{subject.label}/{session.label}/{acquisition.label}/{os.path.basename(image_file_name)}')['path'][-1]
 
     # 202508 csk  debugging info, could get rid of
-    log.debug("file_name is ", image_file_name)
-    log.debug("acquisition is ", acquisition.label)
-    log.debug("file is ", image_file.name)
-    log.debug("override is ", type(override), f'[{override}]')
-    log.debug("modality is ", get_metadata_for_flywheel_file(image_file, ['modality']))
-    log.debug("orientation is ", get_metadata_for_flywheel_file(image_file, ['classification', 'Scan Orientation']))
-    log.debug("slice thickness is ", get_metadata_for_flywheel_file(image_file, ['info', 'header', 'dicom', 'SliceThickness']))
-    log.debug("slice count is ", get_metadata_for_flywheel_file(image_file, ['zip_member_count']))
+    log.info("file_name is ", image_file_name)
+    log.info("acquisition is ", acquisition.label)
+    log.info("file is ", image_file_name)
+    log.info("override is ", type(override), f'[{override}]')
+    log.info("modality is ", get_metadata_for_flywheel_file(image_file, ['modality']))
+    log.info("orientation is ", get_metadata_for_flywheel_file(image_file, ['classification', 'Scan Orientation']))
+    log.info("slice thickness is ", get_metadata_for_flywheel_file(image_file, ['info', 'header', 'dicom', 'SliceThickness']))
+    log.info("slice count is ", get_metadata_for_flywheel_file(image_file, ['zip_member_count']))
 
     # check image filter
     # TODO: 202508 csk if this changes a lot, consider looping through a dict of criteria instead
@@ -90,13 +103,13 @@ def run_oscar_tools(context: GearToolkitContext) -> None:
         if get_metadata_for_flywheel_file(image_file, ['modality']) != 'CT':
             log.error(f'File {image_file_name} is not "CT"!')
             exit()
-        if get_metadata_for_flywheel_file(image_file, ['classification', 'Scan Orientation']) != 'Axial':
+        if 'Axial' not in get_metadata_for_flywheel_file(image_file, ['classification', 'Scan Orientation']):
             log.error(f'File {image_file_name} is not Axial"!')
             exit()
         if get_metadata_for_flywheel_file(image_file, ['info', 'header', 'dicom', 'SliceThickness']) > 10:
             log.error(f'File {image_file_name} slice_thickness is > 10 (mm)!')
             exit()
-        if len(get_metadata_for_flywheel_file(image_file, ['zip_member_count'])) < 10:
+        if get_metadata_for_flywheel_file(image_file, ['zip_member_count']) < 10:
             log.error(f'File {image_file_name} has less than 10 slices!')
             exit()
 

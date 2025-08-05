@@ -2,7 +2,7 @@
   "name": "oscar-gear",
   "label": "OSCAR gear",
   "description": "This is a gear to run the OSCAR analysis on a given subject",
-  "version": "0.9.18",
+  "version": "0.9.34",
   "author": "Carl Kashuk",
   "maintainer": "Carl Kashuk <ckashuk@wisc.edu>",
   "cite": "",
@@ -47,7 +47,7 @@
   "custom": {
     "gear-builder": {
       "category": "analysis",
-      "image": "radiology/oscar-gear:0.9.18"
+      "image": "radiology/oscar-gear:0.9.34"
     },
     "flywheel": {
       "suite": "OSCAR"
@@ -70,8 +70,8 @@
     }
   },
   "config": {
-    "override": {
-      "description": "Ignore the default rules for valid images",
+    "Override image filtering": {
+      "description": "Ignore the default rules for valid images: CT, Axial, thickness <=10, slice count >= 10",
       "default": false,
       "type": "boolean"
     }

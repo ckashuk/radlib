@@ -193,7 +193,7 @@ def fws_resolve_object(fw_client: flywheel.Client, fw_path:str, fw_type:str='pro
     -------
     the flywheel API "Container" object which references the object of fw_type
     """
-    # print(">>>fws_resolve_object", fw_path, fw_type)
+
     # get the specific tree defined by flywheel_path
     if fw_type == 'acquisition':
         fw_path = os.path.dirname(fw_path)
@@ -314,11 +314,8 @@ def fws_download_file_from_flywheel(fw_client, fw_path, local_path, do_download=
     """
 
     # will always need the acquisition object to download files from
-    print("fws_download_file_from_flywheel")
     if fw_path.startswith("/"):
         fw_path = fw_path[1:]
-    print("fw_path", fw_path)
-    print("local_path", local_path)
     acquisition = fws_resolve_object(fw_client, fw_path, 'acquisition')
     file = fws_resolve_object(fw_client, fw_path, 'file')
     if os.path.isdir(local_path):
@@ -349,11 +346,11 @@ def fws_generate_tree(fw_client, fw_path):
 
         try:
             tree_path = component_label if tree_path=='' else f'{tree_path}/{component_label}'
-            obj = fw_client.resolve(tree_path)['path'][-1]
+            obj = fw_client.resolve(tree_path.replace("fw://", '/'))['path'][-1]
         except flywheel.rest.ApiException as e:
             component_type = fw_types[c]
             tree_path = os.path.dirname(tree_path)
-            parent_obj = fw_client.resolve(tree_path)['path'][-1]
+            parent_obj = fw_client.resolve(tree_path.replace("fw://", '/'))['path'][-1]
             # TODO: 202505 csk add project and group?
             if component_type == 'acquisition':
                 # print(f"add {component_type} named {component_label} from {fw_path} to {type(parent_obj)}")
@@ -427,8 +424,6 @@ def fws_upload_file_to_flywheel(fw_client, local_path, fw_path, logger=None):
     fws_generate_tree(fw_client, fw_path)
 
     # will always need the acquisition object to send files to
-    # print("fws_upload_file_to_flywheel")
-    # print(fw_path)
     acquisition = fws_resolve_object(fw_client, fw_path, 'acquisition')
     # if '*' in local_path, upload all files to the acquisition, otherwise upload the one specificed file
     acquisition.upload_file(local_path)
@@ -578,7 +573,6 @@ def match(s, wildcard_pattern):
     regex = re.compile(wildcard_to_regex(wildcard_pattern))
 
     # Filter strings that match
-    # print("match", s, wildcard_pattern, wildcard_to_regex(wildcard_pattern), regex.match(s))
     return regex.match(s)
 
 def fws_expand_file_path(file_path):
@@ -592,7 +586,6 @@ def fws_expand_file_path(file_path):
     delim = os.path.sep
     is_flywheel_path = False
     if fws_is_flywheel_path(file_path):
-        file_path = file_path.replace("fw://", '/')
         is_flywheel_path = True
         delim = '/'
 
@@ -608,7 +601,8 @@ def fws_expand_file_path(file_path):
             for path in paths:
                 if is_flywheel_path:
                     try:
-                        object = fw_client.resolve(path[1:])['path'][-1]
+                        object = fw_client.resolve(path.replace("fw://", ''))['path'][-1]
+
                     except Exception:
                         # does not exist yet
                         return []
@@ -642,8 +636,7 @@ def fws_translate_file_path(file_path, scratch_path, fileset=None):
     # external_files are the file paths that are pointed to in the file system (non-local items such as
     # flywheel paths are downladed to scratch space!). for local file system these are the same as script_files
 
-    # print("fws_translate_file_path", file_path)
-    if file_path.startswith('fw://'):
+    if fws_is_flywheel_path(file_path):
         # flywheel path
         downloaded_path = f'{scratch_path}'
         if fileset is not None:
@@ -655,7 +648,7 @@ def fws_translate_file_path(file_path, scratch_path, fileset=None):
             if fileset.env_common_path is not None:
                 downloaded_path = downloaded_path.replace(fileset.env_common_path, f'{os.path.sep}{fileset.fileset_name}')
             os.makedirs(downloaded_path, exist_ok=True)
-        # print("final downloaded path:", downloaded_path)
+
         # download to scratch space
         downloaded_file_path = f'{downloaded_path}{os.path.sep}{os.path.basename(file_path)}'
         return downloaded_file_path
@@ -726,7 +719,9 @@ def parse_nifti_tags(file):
 
 def fws_assign_modalities(dicom_fileset, nifti_fileset, modalities=fws_modalities, ignore_nifti_tags=True):
     file_names = {}
+    print("getting used_dicoms")
     used_dicoms = [file.name.replace('.nii.gz', '.dicom.zip') for file in nifti_fileset.get_flywheel_file_objects()]
+    print("used_dicoms", used_dicoms)
     if fws_is_flywheel_path(nifti_fileset.original_path):
         max_size = [0, 0, 0]
         for modality in modalities:
@@ -793,7 +788,7 @@ def fws_load_active_processors2():
             continue
         processor_code_path = f'{processor_class_path}{os.path.sep}processor_app.py'
         processor_module = importlib.import_module(f"radlib.processors.{processor_label}.processor_app")
-        print(processor_label, processor_code_path)
+
         classes = inspect.getmembers(processor_module, inspect.isclass)
 
         # Print class names

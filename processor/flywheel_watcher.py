@@ -51,7 +51,7 @@ class FlywheelWatcher():
             datefmt='%Y-%m-%d %H:%M:%S')
 
         while self.active:
-
+            print("active!")
             # for each project being watched
             for project_def in self.config.get('projects', []):
                 watch_path = f'{project_def.get("group_label", "")}/{project_def.get("project_label", "")}/analyses/{project_def.get("analysis_label", "")}'
@@ -66,17 +66,30 @@ class FlywheelWatcher():
 
                 analysis = analysis.reload()
                 info = analysis.info
-                info['active'] = True
                 info['script_template'] = {}  #rrs_radsurv_template
+                info['active'] = True
                 analysis.update_info(info)
 
                 while fws_has_more_scripts(analysis):
                     try:
                         script_info = fws_get_next_script(analysis, remove=True)
+                        print(script_info)
+                        analysis = analysis.reload()
+                        info = analysis.info
                         script_path = f'{self.scratch_path}/script.yaml'
+                        if script_info.get('active_fw_name') is not None:
+                            info['active_script_name'] = script_info.get('active_fw_name')
+                            analysis.update_info(info)
+
                         Processor.save_script(script_info, script_path)
                         processor = self.active_processors.get(script_info['base_image'])
                         processor.run_processor(scratch_path=self.scratch_path, script_path=script_path)
+                        time.sleep(60)
+
+                        analysis = analysis.reload()
+                        info = analysis.info
+                        info['active_script_name'] = None
+                        analysis.update_info(info)
 
                     except OverflowError as e:
                         print("Exception", e)

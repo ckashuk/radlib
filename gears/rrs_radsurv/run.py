@@ -1,14 +1,22 @@
 #!/usr/bin/env python
+import time
+
 import yaml
 from flywheel_gear_toolkit import GearToolkitContext
 import os
 
+base_image = 'rrs_radsurv'
+scripts_label = 'scripts'
+active_fw_name = f'{base_image}_{time.time()}'
+active_label = 'active'
+active_script_label = 'active_script_name'
+
 def fws_add_script(container, script_info):
     container = container.reload()
     info = container.info
-    scripts = info.get('scripts', [])
+    scripts = info.get(scripts_label, [])
     scripts.append(script_info)
-    info['scripts'] = scripts
+    info[scripts_label] = scripts
     container.update_info(info)
 
 
@@ -32,7 +40,8 @@ session = fw_client.get(analysis_from.parents["session"])
 # create the script
 # TODO: 202507 csk add function to build for specific processor
 script_info = {
-    'base_image': 'rrs_radsurv',
+    'base_image': base_image,
+    'active_fw_name': active_fw_name,
     'filesets': {
         'dicom_raw': f'fw://{group_id}/{project.label}/{subject.label}/{session.label}/*/*.dicom.zip',
         'nifti_raw': f'fw://{group_id}/{project.label}/{subject.label}/{session.label}/*/*.nii.gz',
@@ -43,10 +52,26 @@ script_info = {
 
 try:
     # Get the analysis container object from Flywheel where the processor will look for scripts:
-    analysis_to = fw_client.resolve(f'{group_id}/{project.label}/analyses/{script_info["base_image"]}')['path'][-1]
+    analysis = fw_client.resolve(f'{group_id}/{project.label}/analyses/{script_info["base_image"]}')['path'][-1]
 
     # submit the script
-    fws_add_script(analysis_to, script_info)
+    fws_add_script(analysis, script_info)
+
+    # wait for the cript to run
+    analysis = analysis.reload()
+    active = analysis.info.get(active_label)
+    if active:
+        active_script = analysis.info.get(active_script_label)
+        while active_script != active_fw_name:
+            time.sleep(3)
+            analysis = analysis.reload()
+            active_script = analysis.info.get(active_script_label)
+
+        while active_script == active_fw_name:
+            time.sleep(3)
+            analysis = analysis.reload()
+            active_script = analysis.info.get(active_script_label)
+
 
 except Exception as e:
     print("exception", e)

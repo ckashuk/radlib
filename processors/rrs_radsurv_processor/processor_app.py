@@ -44,12 +44,13 @@ class RrsRadsurvProcessor(Processor):
 
             preprocessed = self.get_fileset('preprocessed')
             self.log_path = f'{self.scratch_path}/{self.get_unique_name()}.log'
-            fws_create_paths([self.log_path])
+            fws_create_paths([self.log_path, '/logs'])
 
             if dicom_raw is not None:
                 # ingest from dicom files
                 # pull them down first!
                 dicom_raw.load_local_files()
+
                 sorter = DicomSorter('/dicom_raw',
                                      f'{self.scratch_path}/dicom_sorted',
                                      converted_folder='/nifti_raw',
@@ -67,8 +68,10 @@ class RrsRadsurvProcessor(Processor):
                 try:
                     niiQuery = self.get_fileset('nifti_raw_modalities_niiQuery.csv')
                     copy_from = niiQuery.get_local_paths()[0]
+
                 except FWSFileSetException:
                     # generate from tags
+                    print("tags")
                     copy_from = f'{self.scratch_path}/niiQuery.csv'
                     with open(copy_from, 'w') as f:
                         mods = fws_assign_modalities(dicom_raw, nifti_raw)
@@ -79,7 +82,9 @@ class RrsRadsurvProcessor(Processor):
                         for mod, file_name in mods.items():
                             f.write(f'{subject_label},{session_label},{acquisition_label},{file_name.replace(".dicom.zip", ".nii.gz")},4,TRUE,{mod}\n')
 
-                copy_to = f'{self.log_path}/nifti_raw_modalities_niiQuery.csv'
+                # copy_to = f'{self.log_path}/nifti_raw_modalities_niiQuery.csv'
+                copy_to = f'/logs/nifti_raw_modalities_niiQuery.csv'
+                print("modality file", copy_from, copy_to)
                 fws_copy_file(copy_from, copy_to)
 
 
@@ -171,10 +176,12 @@ class RrsRadsurvProcessor(Processor):
 
             with open(example_config_path, 'w') as path:
                 yaml.safe_dump(example_config, path, sort_keys=False)
+            print("configs fixed")
 
             # run process
             try:
                 command_text = ['python3', f'{self.code_path}/radiomics_rscore_main.py', f'{self.log_path}/{self.processor_name()}_run.log']
+                print("command_text")
                 p = subprocess.Popen(command_text, text=True)
                 exit_code = p.wait()
 

@@ -213,7 +213,6 @@ class DicomSorter:
         return unsorted_paths
 
     def sort(self):
-        print("sort?")
         try:
             sort_paths = DicomSorter.find_dicom_in_folder(self.input_folder)
             if self.all_paths_done('sorted', sort_paths):
@@ -234,9 +233,7 @@ class DicomSorter:
                         zip_file.extractall(temp_dir.name)
                         dcm_paths = DicomSorter.find_dcm_in_folder(temp_dir.name)
                         for tmp_path in dcm_paths:
-                            print("sort one", tmp_path)
                             self.sort_one_dcm(tmp_path)
-                            print("done")
                 else:
                     # path is the file
                     self.sort_one_dcm(sort_path)
@@ -330,7 +327,7 @@ class DicomSorter:
             acquisition = get_fw_acquisition(fw_client, group, project, subject, session, 'dicom_raw')
             for dicom_path in dicom_paths:
                 dicom_path = os.path.normpath(dicom_path)
-                # print("DicomSorter move ", dicom_path, acquisition.label)
+
                 # make zip file
                 zip_path = f'{dicom_path.replace(" ", "_")}.dicom.zip'
                 if os.path.exists(zip_path):

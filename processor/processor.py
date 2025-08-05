@@ -206,13 +206,13 @@ class Processor:
 
     def add_script_to_docker_compose(self, dc_content, script_path, script_mount_name='script.yaml'):
         mount_string = f'{script_path}:/{script_mount_name}'
-        # print("mount_string", mount_string)
+
         dc_content['services'][self.processor_docker_image_name()]['volumes'].append(mount_string)
         dc_content['volumes'][script_mount_name] = None
 
     def add_fileset_to_docker_compose(self, dc_content, fileset):
         mount_string = fileset.get_mount_string()
-        # print("mount_string", mount_string)
+
         dc_content['services'][self.processor_docker_image_name()]['volumes'].append(fileset.get_mount_string())
         dc_content['volumes'][fileset.fileset_name] = None
 
@@ -278,6 +278,7 @@ class Processor:
 
 
     def set_up(self, script_path=None):
+
         class StreamToLogger:
             def __init__(self, logger, log_level):
                 self.logger = logger
@@ -468,7 +469,6 @@ class Processor:
 
 class Watcher():
     def __init__(self, watch_path, cls):
-        print("watch_path??", watch_path)
         self.watch_path = watch_path
         self.watch_log_path = f'{self.watch_path}/logs/{self.watch_name()}.log'
         os.makedirs(os.path.dirname(self.watch_log_path), exist_ok=True)
@@ -496,7 +496,6 @@ class Watcher():
 
         while self.active:
             new_logger.info("watch")
-            print("watch")
             # check folder
             script_paths = glob.glob(f'{self.watch_path}/*.yaml')
 
