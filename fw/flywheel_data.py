@@ -10,32 +10,6 @@ from radlib.dcm.converters import pet_suv_factor
 # from radlib.projects.spore_17009_set import get_pathology_images
 
 
-def separate_flywheel_components(fw_path):
-    components = fw_path.split('/')
-    group = components[0] if len(components) > 0 else None
-    project = components[1] if len(components) > 1 else None
-    subject = components[2] if len(components) > 2 else None
-    session = components[3] if len(components) > 3 else None
-    acquisition = components[4] if len(components) > 4 else None
-    file_name = components[5] if len(components) > 5 else None
-    return group, project, subject, session, acquisition, file_name
-
-
-def replace_flywheel_components(fw_path, project=None, subject=None, session=None, acquisition=None, file_name=None):
-    components = separate_flywheel_components(fw_path)
-    group = components[0]
-    project = components[1] if project is None else project
-    subject = components[2] if subject is None else subject
-    session = components[3] if session is None else session
-    acquisition = components[4] if acquisition is None else acquisition
-    file_name = components[5] if file_name is None else file_name
-
-    new_fw_path = f'{group}/{project}/{subject}/{session}/{acquisition}/{file_name}'.replace('//', '/')
-    if new_fw_path.endswith('/'):
-        new_fw_path = new_fw_path[:-1]
-
-    return new_fw_path
-
 def load_image_from_flywheel(fw_client, fw_path, keep_slices=False):
     # given the "address" to an image, download the file to a temp dir and load it as an sitk Image
 

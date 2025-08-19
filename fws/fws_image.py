@@ -65,7 +65,33 @@ class FWSImageFile:
         else:
             return self.local_path.split('/')[-1]
 
+    @staticmethod
+    def separate_flywheel_components(fw_path):
+        components = fw_path.split('/')
+        group = components[0] if len(components) > 0 else None
+        project = components[1] if len(components) > 1 else None
+        subject = components[2] if len(components) > 2 else None
+        session = components[3] if len(components) > 3 else None
+        acquisition = components[4] if len(components) > 4 else None
+        file_name = components[5] if len(components) > 5 else None
+        return group, project, subject, session, acquisition, file_name
 
+
+    @staticmethod
+    def replace_flywheel_components(fw_path, project=None, subject=None, session=None, acquisition=None, file_name=None):
+        components = FWSImageFile.separate_flywheel_components(fw_path)
+        group = components[0]
+        project = components[1] if project is None else project
+        subject = components[2] if subject is None else subject
+        session = components[3] if session is None else session
+        acquisition = components[4] if acquisition is None else acquisition
+        file_name = components[5] if file_name is None else file_name
+
+        new_fw_path = f'{group}/{project}/{subject}/{session}/{acquisition}/{file_name}'.replace('//', '/')
+        if new_fw_path.endswith('/'):
+            new_fw_path = new_fw_path[:-1]
+
+        return new_fw_path
 
     def resolve(self, level, label_if_not_found = None):
         # truncate path
@@ -94,6 +120,8 @@ class FWSImageFile:
 
             self.fw_path = f'{parent_path}/{label_if_not_found}'
             return obj
+
+        return None
 
     def load_image(self, image_type: FWSImageType = FWSImageType.sitk, force_reload=False):
         image = None
@@ -181,7 +209,7 @@ class FWSImageFile:
             usable_paths = FWSImageFile.get_paths_from_flywheel(self.fw_client, self.fw_path)
         else:
             if self.local_path is None:
-                raise FWSImageFileLocalException(f"local path is {self.local_path}")
+                raise FWSImageFileLocalException
             usable_paths = FWSImageFile.get_paths_from_local(self.local_path)
 
         if len(usable_paths) == 0:

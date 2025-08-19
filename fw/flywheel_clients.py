@@ -2,8 +2,7 @@ import flywheel
 
 # 202504 csk "python_programming" API key good on all three instances until Apr 5, 2026
 def uw_client():
-    # key 'api' generated 6/26/2025 expires 6/26/2028
-    return flywheel.Client('wisc.flywheel.io:djEgK2HwN5LXLwegKoAGbGxhuD57hP2NZSa_IqNV0G1KRSOUSC5RkOHbA',
+    return flywheel.Client('wisc.flywheel.io:djEhFGCm2QwnYvaMmTdo4r63uq8H7K-UFCupFiFSUlK7k5Bum0f95mTGg',
                            request_timeout=1000)
 
 def uwhealth_client():
