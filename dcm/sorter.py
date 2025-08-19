@@ -15,6 +15,8 @@ import subprocess
 
 from dicom2nifti.exceptions import ConversionError
 
+import sys
+sys.path.append('/home/aa-cxk023/share/radlib')
 from radlib.fw.flywheel_clients import uwhealthaz_client
 
 class DicomSorter:
@@ -63,7 +65,8 @@ class DicomSorter:
                  flywheel_group=None,
                  flywheel_project=None,
                  preserve_input_files=False,
-                 logger=None
+                 logger=None,
+                 scratch_folder=None
                  ):
 
         self.logger = logger
@@ -75,7 +78,7 @@ class DicomSorter:
         self.converted_folder_name = DicomSorter.default_radsurv_converted_folder_name if converted_folder_name is None else converted_folder_name
 
         self.input_folder = input_folder
-        self.scratch_folder = tempfile.TemporaryDirectory()
+        self.scratch_folder = tempfile.TemporaryDirectory() if scratch_folder is None else scratch_folder
 
         if logger is not None:
             self.logger.info(f'input folder is {self.input_folder}')
@@ -161,7 +164,6 @@ class DicomSorter:
         #     print("return?")
         #     return
         # get metadata
-
         meta = pydicom.dcmread(dcm_path, stop_before_pixels=True)
         sort_dir = self.clean_path(self.get_sort_dir(meta))
         sort_filename = self.clean_filename(os.path.basename(dcm_path))
@@ -171,6 +173,7 @@ class DicomSorter:
             sort_path = f'{os.path.dirname(sort_path)}A/{os.path.basename(sort_path)}'
         os.makedirs(os.path.dirname(sort_path), exist_ok=True)
         shutil.copy(dcm_path, sort_path)
+        # print(f"copied {dcm_path} to {sort_path}")
         # TODO: 202506 csk fix this before enabling!
         # if self.preserve_input_files:
         #     shutil.copy(dcm_path, sort_path)
@@ -183,7 +186,7 @@ class DicomSorter:
                 # time.sleep(2)
                 self.convert()
                 if self.send_to_flywheel:
-                    self.move()
+                    self.move(replace_dicoms=True, replace_niftis=True)
             time.sleep(2)
             # TODO: 202505 csk need to figure out difference between one-off and processor
             if not self.service:
@@ -271,6 +274,7 @@ class DicomSorter:
 
                     try:
                         dicom2nifti.dicom_series_to_nifti(convert_path, nii_path, reorient_nifti=True)
+                        # print(f"converted {convert_path} to {nii_path}")
                     except ConversionError as e:
                         if self.logger is not None:
                             self.logger.error(f'dicom2nifti ConversionError {e}, check dicom {convert_path}')
@@ -324,8 +328,9 @@ class DicomSorter:
                 session = nii_paths[0].split(os.path.sep)[-2]
 
             # dicoms
-            acquisition = get_fw_acquisition(fw_client, group, project, subject, session, 'dicom_raw')
             for dicom_path in dicom_paths:
+                acquisition = get_fw_acquisition(fw_client, group, project, subject, session, os.path.basename(dicom_path).replace('.dicom.zip', '').replace(" ", '_'))
+
                 dicom_path = os.path.normpath(dicom_path)
 
                 # make zip file
@@ -338,6 +343,7 @@ class DicomSorter:
                 zip_file.close()
                 if replace_dicoms:
                     acquisition.upload_file(zip_path)
+                    # print("upload to ", acquisition.label, zip_path)
                 # shutil.rmtree(dicom_path)
                 # try:
                 #     os.remove(zip_path)
@@ -345,10 +351,12 @@ class DicomSorter:
                 #     self.files_to_delete.append(zip_path)
 
             # niftis
-            acquisition = get_fw_acquisition(fw_client, group, project, subject, session, 'nifti_raw')
             for nii_path in nii_paths:
+                acquisition = get_fw_acquisition(fw_client, group, project, subject, session, os.path.basename(nii_path).replace(".nii.gz", '').replace(' ', '_'))
+
                 if replace_niftis:
                     acquisition.upload_file(nii_path)
+                    print("upload to ", acquisition.label, nii_path)
                 # try:
                 #     os.remove(nii_path)
                 # except Exception as e:
@@ -405,6 +413,7 @@ def get_fw_acquisition(fw_client, group, project_label, subject_label, session_l
     return acquisition
 
 
+"""
 if __name__ == "__main__":
     input_folder = 'z:/temp/temp_in'
     sorted_folder = 'z:/temp/temp_sorted'
@@ -417,6 +426,6 @@ if __name__ == "__main__":
                          flywheel_project='UPenn Cohort')
     sorter.active = True
     sorter.run()
-
+"""
 
 

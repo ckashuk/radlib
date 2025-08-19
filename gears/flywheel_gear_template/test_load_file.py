@@ -23,7 +23,7 @@ img2 = sitk.ReadImage([path0, path1])
 print(img0.GetOrigin(), img0.GetSpacing(), img0.GetDirection(), img0.GetSize())
 print(img1.GetOrigin(), img1.GetSpacing(), img1.GetDirection(), img1.GetSize())
 print(img2.GetOrigin(), img2.GetSpacing(), img2.GetDirection(), img2.GetSize())
-exit()
+# exit()
 
 tmp = load_image_from_local_path('C:/Users/CXK023/Downloads/prostatespore/csk test project/17009_Pyl11/pathology linkage test/PET1/PET AC Prostate.zip')
 print(tmp.GetSize())

@@ -2,7 +2,7 @@
   "name": "rrs-radsurv-gear",
   "label": "RRS RadSurv gear",
   "description": "This is a gear to run the IDiA RRS RadSurv workflow on a set of input dicoms",
-  "version": "0.0.46",
+  "version": "0.0.48",
   "author": "Carl Kashuk",
   "maintainer": "Carl Kashuk <ckashuk@wisc.edu>",
   "cite": "",
@@ -23,7 +23,7 @@
   "custom": {
     "gear-builder": {
       "category": "analysis",
-      "image": "radiology/rrs-radsurv-gear:0.0.46"
+      "image": "radiology/rrs-radsurv-gear:0.0.48"
     },
     "flywheel": {
       "suite": "FWS Gears"

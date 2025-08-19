@@ -3,6 +3,8 @@ import sys
 import tempfile
 import time
 import logging
+from pprint import pprint
+
 import yaml
 
 import flywheel
@@ -51,7 +53,6 @@ class FlywheelWatcher():
             datefmt='%Y-%m-%d %H:%M:%S')
 
         while self.active:
-            print("active!")
             # for each project being watched
             for project_def in self.config.get('projects', []):
                 watch_path = f'{project_def.get("group_label", "")}/{project_def.get("project_label", "")}/analyses/{project_def.get("analysis_label", "")}'
@@ -73,7 +74,7 @@ class FlywheelWatcher():
                 while fws_has_more_scripts(analysis):
                     try:
                         script_info = fws_get_next_script(analysis, remove=True)
-                        print(script_info)
+                        pprint(script_info)
                         analysis = analysis.reload()
                         info = analysis.info
                         script_path = f'{self.scratch_path}/script.yaml'

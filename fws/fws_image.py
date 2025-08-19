@@ -95,8 +95,6 @@ class FWSImageFile:
             self.fw_path = f'{parent_path}/{label_if_not_found}'
             return obj
 
-        return None
-
     def load_image(self, image_type: FWSImageType = FWSImageType.sitk, force_reload=False):
         image = None
 

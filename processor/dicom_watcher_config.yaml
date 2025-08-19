@@ -1,0 +1,4 @@
+watch_name: IDIA_SEGMENTATION_WATCHER
+paths:
+# - //onfnas01.uwhis.hosp.wisc.edu/radiology/DICOM/IDIA_SEGMENTATION
+- /home/aa-cxk023/seg

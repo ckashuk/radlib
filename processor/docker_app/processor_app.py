@@ -1,7 +1,10 @@
 import subprocess
+
+import numpy as np
 import yaml
 import time
 import sys
+import SimpleITK as sitk
 
 sys.path.append('/home/aa-cxk023/share/radlib')
 sys.path.append('/home/aa-cxk023/share/RRS_RadSurv')
@@ -13,6 +16,7 @@ from radlib.fws.fws_utils import fws_create_paths, fws_copy_file, \
     fws_separate_flywheel_labels, fws_in_docker, \
     fws_is_flywheel_path, fws_assign_modalities
 from radlib.processor.processor import Processor
+# from radlib.graphics.nrrd_to_vtk import jpg_brain_three_view
 
 
 class RrsRadsurvProcessor(Processor):
@@ -24,11 +28,14 @@ class RrsRadsurvProcessor(Processor):
         try:
             # get filesets
             dicom_raw = self.get_fileset('dicom_raw')
+            dicom_sorted = self.get_fileset('dicom_sorted')
             nifti_raw = self.get_fileset('nifti_raw')
 
             # TODO: 2025-07 csk is this all necessary?
             if fws_is_flywheel_path(nifti_raw.original_path):
+                # print("flywheel_labels")
                 flywheel_labels = fws_separate_flywheel_labels(nifti_raw.original_path)
+                # print("flywheel_labels", flywheel_labels)
                 group_label = flywheel_labels[0]
                 project_label = flywheel_labels[1]
                 subject_label = flywheel_labels[2]
@@ -50,7 +57,9 @@ class RrsRadsurvProcessor(Processor):
                 # ingest from dicom files
                 # pull them down first!
                 dicom_raw.load_local_files()
-
+                import glob
+                print("loaded", glob.glob('/dicom_raw/*'))
+                # exit()
                 sorter = DicomSorter('/dicom_raw',
                                      f'{self.scratch_path}/dicom_sorted',
                                      converted_folder='/nifti_raw',
@@ -71,10 +80,10 @@ class RrsRadsurvProcessor(Processor):
 
                 except FWSFileSetException:
                     # generate from tags
-                    print("tags")
+                    # print("tags")
                     copy_from = f'{self.scratch_path}/niiQuery.csv'
                     with open(copy_from, 'w') as f:
-                        mods = fws_assign_modalities(dicom_raw, nifti_raw)
+                        mods = fws_assign_modalities(dicom_sorted, nifti_raw)
                         print(subject_label, session_label, mods)
                         if len(mods) < 4:
                             raise Exception("not enough modalities were identified!")
@@ -84,7 +93,7 @@ class RrsRadsurvProcessor(Processor):
 
                 # copy_to = f'{self.log_path}/nifti_raw_modalities_niiQuery.csv'
                 copy_to = f'/logs/nifti_raw_modalities_niiQuery.csv'
-                print("modality file", copy_from, copy_to)
+                # print("modality file", copy_from, copy_to)
                 fws_copy_file(copy_from, copy_to)
 
 
@@ -187,6 +196,31 @@ class RrsRadsurvProcessor(Processor):
 
             except Exception as e:
                 print(f"Error: {e}")
+
+
+            # "report"
+            brain_path = f"/{self.scratch_path}/preprocessed/{subject_label}/{acquisition_label}/{subject_label}_T2_reg_SkullS_BiasC.nii.gz"
+            roi_path = f"/{self.scratch_path}/preprocessed/{subject_label}/{acquisition_label}/tumor_seg_swinUNETR.nii.gz"
+
+            brain = sitk.GetArrayFromImage(sitk.ReadImage(brain_path))
+            brain = np.rot90(brain, 2, [0, 2])
+            roi = sitk.GetArrayFromImage(sitk.ReadImage(roi_path))
+            roi = np.rot90(roi, 2, [0, 2])
+
+            import matplotlib.pyplot as plt
+
+            plt.subplot(1, 3, 1)
+            plt.imshow(brain[int(brain.shape[0] / 2), :, :], cmap='gray')
+            plt.imshow(roi[int(roi.shape[0] / 2), :, :], alpha=0.3, cmap='Reds', vmin=1, vmax=4)
+            plt.subplot(1, 3, 2)
+            plt.imshow(brain[:, int(brain.shape[1] / 2), :], cmap='gray')
+            plt.imshow(roi[:, int(roi.shape[1] / 2), :], alpha=0.3, cmap='Reds', vmin=1, vmax=4)
+            plt.subplot(1, 3, 3)
+            plt.imshow(brain[:, :, int(brain.shape[2] / 2)], cmap='gray')
+            plt.imshow(roi[:, :, int(roi.shape[2] / 2)], alpha=0.3, cmap='Reds', vmin=1, vmax=4)
+
+            plt.savefig(f"/{self.scratch_path}/preprocessed/{subject_label}/{acquisition_label}/{subject_label}_report.pdf")
+            # jpg_brain_three_view(brain, roi, f"/{self.scratch_path}/preprocessed/{subject_label}/{acquisition_label}/{subject_label}_report.jpg")
 
             # output
             preprocessed.save_files()

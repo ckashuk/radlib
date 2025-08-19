@@ -9,3 +9,6 @@ projects:
 - group_label: idia_group
   project_label: CHTC Peds
   analysis_label: rrs_radsurv
+- group_label: idia_group
+  project_label: idia_brain_segmentation
+  analysis_label: rrs_radsurv

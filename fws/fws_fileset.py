@@ -8,7 +8,7 @@ import flywheel
 
 from radlib.fw.flywheel_clients import uwhealthaz_client
 from radlib.fws.fws_utils import fws_expand_file_path, fws_translate_file_path, fws_in_docker, \
-    fws_upload_file_to_flywheel, fws_get_mounted_path, fws_separate_flywheel_labels, fws_is_flywheel_path, \
+    fws_upload_file_to_flywheel, fws_separate_flywheel_labels, fws_is_flywheel_path, \
     fws_download_file_from_flywheel
 
 
@@ -27,12 +27,12 @@ class FWSFileSet:
     scratch_path: a file path to local storage, used for read/write/temp space if not a physical file path,
     will be mounted as "scratch" inside the docker container. creates in system temp space if not provided
 
-    get_local_paths(): one or more filesystem paths where the real file data can be found, either a local path, a path
+    local_paths: one or more filesystem paths where the real file data can be found, either a local path, a path
     in the scratch space in the case of a flywheel file path. translated to a mounted drive for a docker file.
-    this ia an actual path that you can use to find a file
+    this ia an actual path that you can use to find a file. Must run load_local_files() to pull data down from flywheel
 
-    get_output_paths(): paths where the files from get_local_paths() can be sent to. Can be a local path, a path translated
-    to a mounted drive, or a flywheel file path
+    get_output_paths(): paths where the files from get_local_paths() can be sent to during save_files(). Can be a local
+    path, a path translated to a mounted drive, or a flywheel file path
 
     """
 
@@ -54,9 +54,9 @@ class FWSFileSet:
             The base path for the fileset. Can be a local filesystem path, a flywheel path, or (more coming soon)
         scratch_path: str, optional
             A path in local filesystem that flywheel data/temporary objects can be stored. If not provided, the fileset
-            reserves temporary space for it's use
+            reserves temporary space for its use
         force_load: boolean, default False
-            If not True, the fileset is initialzed and can be looked at without pulling data from Flywheel.
+            If not True, the fileset is initialized and can be looked at without pulling data from Flywheel.
             Flywheel data gets pulled and saved by get_local_paths()
 
         """
@@ -69,7 +69,9 @@ class FWSFileSet:
         self.original_paths = fws_expand_file_path(self.original_path)
 
         # find where local files would go
-        self.get_local_paths(force_flywheel_path=True)
+        # TODO 202508 csk better way to do this??
+        self.local_paths = None
+        self.local_paths = self.get_local_paths(force_flywheel_path=True)
 
         if force_load:
             # download the files to local
@@ -92,6 +94,9 @@ class FWSFileSet:
         elif os.path.exists(self.get_base_path()):
             return self.get_base_path()
         else:
+            common_path = f'{self.scratch_path}/{self.fileset_name}'
+            if not fws_is_flywheel_path(common_path) and not os.path.exists(common_path):
+                os.makedirs(common_path, exist_ok=True)
             return self.scratch_path
 
 
@@ -107,7 +112,7 @@ class FWSFileSet:
 
     def get_mount_path(self) -> str:
         """
-        The "mount path" is the equivalent of the "common path", but always locak, hence the get_local_paths
+        The "mount path" is the equivalent of the "common path", but always local, hence the get_local_paths
 
         Returns
         -------
@@ -125,8 +130,10 @@ class FWSFileSet:
         -------
         A string representation of the mount point, in this case used to build a docker-compose.yaml file
         """
-        # make sure things are defined if you call this early
-        return f'{self.get_common_path()}{os.path.sep}{self.fileset_name}:/{self.fileset_name}'
+        if fws_is_flywheel_path(self.original_path):
+            return f'{self.get_common_path()}{os.path.sep}{self.fileset_name}:/{self.fileset_name}'
+        else:
+            return f'{self.get_common_path()}:/{self.fileset_name}'
 
     def get_flywheel_file_objects(self) -> list:
         """
@@ -135,19 +142,22 @@ class FWSFileSet:
 
         Returns
         -------
-        A list of flywheel File objects. May be emote.
+        A list of flywheel File objects. May be remote.
         """
+
         objs = []
         if not fws_is_flywheel_path(self.original_path):
             # not a flywheel path, so there are no objects
+            # print("not flywheel!")
             return objs
 
         # expand
         expanded_paths = fws_expand_file_path(self.original_path)
-
+        # print("get_flywheel_file_objects", "expanded_paths", len(expanded_paths))
         # use the flywheel api resolve function to get at the files
         fw_client = uwhealthaz_client()
         for expanded_path in expanded_paths:
+            # print("get_flywheel_file_objects", "expanded_path", expanded_path)
             objs.append(fw_client.resolve(expanded_path.replace("fw://", ""))['path'][-1])
         return objs
 
@@ -189,9 +199,14 @@ class FWSFileSet:
         A list of file paths in the local filesystem that are accessible by the running code
 
         """
-        # expand the wildcard(s)
-        expanded_file_paths = fws_expand_file_path(self.original_path)
 
+        if self.local_paths is not None:
+            return self.local_paths
+
+        # expand the wildcard(s)
+        # print("get_local_paths", self.original_path)
+        expanded_file_paths = fws_expand_file_path(self.original_path)
+        # print("expanded_file_paths", expanded_file_paths)
         self.local_paths = []
         for file_path in expanded_file_paths:
             if fws_in_docker():
@@ -202,6 +217,7 @@ class FWSFileSet:
                 else:
                     # folder
                     file_path = file_path.replace(self.env_common_path, f'/{self.fileset_name}')
+                    # print("inside docker", file_path)
 
             if fws_is_flywheel_path(self.original_path) or force_flywheel_path:
                 # translate from flywheel path to local path
@@ -209,8 +225,8 @@ class FWSFileSet:
 
             elif os.path.exists(file_path):
                 # file exists, so this is a "direct" path
-                self.local_paths.append(file_path)
-
+                for file_direct_path in glob.glob(f'{file_path}/*'):
+                    self.local_paths.append(file_direct_path)
             else:
                 # raise an error
                 raise FWSFileSetException(f"error when expanding {file_path} to a valid file!")
@@ -220,16 +236,21 @@ class FWSFileSet:
     def load_local_files(self):
         # 2025-07 csk could be dedicated scratch space, don't download if it already exists!
         fw_client = uwhealthaz_client()
-
+        # print("load_local_files")
         for original_path, local_path in zip(self.original_paths, self.local_paths):
+            # print(original_path, local_path)
+            if not fws_is_flywheel_path(original_path):
+                continue
             try:
+                # print("fws_download_file", original_path, local_path)
                 returned_path = fws_download_file_from_flywheel(fw_client, original_path, local_path)
+                # print("returned_path", returned_path)
                 if returned_path != local_path:
                     print("returned_path != local_path!")
 
             except flywheel.rest.ApiException as e:
                 # if this is an output file in flywheel, it has not been created yet, but the rest of the goo needs to be done!
-                print("exception ", e)
+                print("load_local_files exception ", e)
                 return local_path
 
     def get_output_paths(self) -> list[str]:
@@ -265,12 +286,10 @@ class FWSFileSet:
         """
         fw_client = uwhealthaz_client()
         output_paths = []
-        print("save_files!")
         if len(self.get_local_paths()) == 0:
             # individual files generated by run and put into scratch space, generate these on access
             # TODO: 202507 csk for Gustavo's code only?
             flywheel_labels = fws_separate_flywheel_labels(self.original_path)
-            print(flywheel_labels)
             local_path = f'{self.get_common_path()}{os.path.sep}{flywheel_labels[2]}{os.path.sep}Baseline'
             self.local_paths = glob.glob(f'{local_path}{os.path.sep}*')
 
@@ -278,7 +297,6 @@ class FWSFileSet:
                 output_paths.append(f'{os.path.dirname(self.original_path)}{os.path.sep}{os.path.basename(local_path)}')
 
         for local_path, output_path in zip(self.local_paths, output_paths):
-            print('save_files', local_path, output_path)
             if fws_is_flywheel_path(output_path):
                  fws_upload_file_to_flywheel(fw_client, local_path=local_path, fw_path=output_path)
             else:

@@ -44,6 +44,7 @@ script_info = {
     'active_fw_name': active_fw_name,
     'filesets': {
         'dicom_raw': f'fw://{group_id}/{project.label}/{subject.label}/{session.label}/*/*.dicom.zip',
+        'dicom_sorted': f'fw://{group_id}/{project.label}/{subject.label}/{session.label}/*/*.dicom.zip',
         'nifti_raw': f'fw://{group_id}/{project.label}/{subject.label}/{session.label}/*/*.nii.gz',
         'preprocessed': f'fw://{group_id}/{project.label}/{subject.label}/{session.label}/preprocessed/*',
         # 'nifti_raw_modalities_niiQuery.csv': '/home/aa-cxk023/share/files/nifti_raw_modalities_niiQuery.csv'

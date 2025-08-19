@@ -36,7 +36,7 @@ docker_compose_template_yaml = {
                         'devices': [
                             {
                                 'driver': 'nvidia',
-                                'count': 'all',
+                                'count': '2',
                                 'capabilities': ['gpu']
                             }
                         ]
@@ -213,7 +213,7 @@ class Processor:
     def add_fileset_to_docker_compose(self, dc_content, fileset):
         mount_string = fileset.get_mount_string()
 
-        dc_content['services'][self.processor_docker_image_name()]['volumes'].append(fileset.get_mount_string())
+        dc_content['services'][self.processor_docker_image_name()]['volumes'].append(mount_string)
         dc_content['volumes'][fileset.fileset_name] = None
 
     def processor_docker_image_name(self):
@@ -255,7 +255,7 @@ class Processor:
                 continue
 
             self.add_fileset_to_docker_compose(docker_compose_content, fileset)
-            mount_points[f'{fileset.fileset_name}_MOUNT_POINT'] = fileset.get_common_path()
+            mount_points[f'{fileset.fileset_name}_MOUNT_POINT'] = f'{fileset.get_common_path()}'
 
         self.add_script_to_docker_compose(docker_compose_content, self.script_path)
 
