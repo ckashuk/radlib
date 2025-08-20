@@ -46,6 +46,7 @@ class FlywheelWatcher():
     def watch(self):
         # csk need to get the logger again when run in a separate process!
         new_logger = logging.getLogger(self.watch_name())
+        print(">>>>>flywheel watcher logger! named ", self.watch_name(), "path", self.watch_log_path)
         logging.basicConfig(
             filename=self.watch_log_path,
             format='%(asctime)s %(levelname)-8s %(message)s',

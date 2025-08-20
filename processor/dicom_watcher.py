@@ -58,6 +58,7 @@ class DicomWatcher():
     def watch(self):
         # csk need to get the logger again when run in a separate process!
         self.logger = logging.getLogger(self.watch_name())
+        print(">>>>>dicom watcher logger! named ", self.watch_name(), "path", self.watch_log_path)
         logging.basicConfig(
             filename=self.watch_log_path,
             format='%(asctime)s %(levelname)-8s %(message)s',

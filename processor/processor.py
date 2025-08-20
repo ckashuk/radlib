@@ -2,7 +2,6 @@ import copy
 import glob
 import os
 import re
-import sys
 import time
 import shutil
 import logging
@@ -144,15 +143,13 @@ class Processor:
         print(f"This is {self.processor_name()}!")
 
 
-    def process(self, script_path):
+    def process(self, script_path: str):
         """
 
         Parameters
         ----------
-        script_path
-
-        Returns
-        -------
+        script_path: str
+            The path to a yaml script
 
         """
         # always call setup first
@@ -166,7 +163,18 @@ class Processor:
 
 
     @classmethod
-    def run_local(cls, scratch_path, script_path):
+    def run_local(cls, scratch_path: str, script_path: str):
+        """
+        Run a processor "locally"
+
+        Parameters
+        ----------
+        scratch_path: str
+            The location of scratch space for this processor
+        script_path: str
+            The location of a yaml script to be run by this processor
+
+        """
         processor = cls(scratch_path)
         processor.process(script_path=script_path)
         # if cls.logger is not None:
@@ -174,14 +182,27 @@ class Processor:
         #    exit()
 
     @staticmethod
-    def watch_name(watch_path):
+    def watch_name(watch_path: str):
+        """
+        given a path to watch, pull the watch name (basepath) from it
+
+        Parameters
+        ----------
+        watch_path: str
+            A path to watch for scripts
+
+        Returns
+        -------
+        The "name" for this watch
+
+        """
         name = watch_path
         if name.endswith('in'):
             name = os.path.dirname(name)
         return os.path.basename(name)
 
     @classmethod
-    def run_watcher(cls, watch_path):
+    def run_watcher(cls, watch_path: str):
         # processor = cls(scratch_path)
         # processor.process(script_path=script_path)
         print(f"run_watcher {cls.__name__} on {Processor.watch_name(watch_path)} {watch_path}")
@@ -300,28 +321,31 @@ class Processor:
             self.scratch_path = f'{tempfile.mkdtemp()}/{self.script_info.get("unique_name")}' if self.scratch_path is None else f'{self.scratch_path}/{self.script_info.get("unique_name")}'
         fws_create_paths([self.scratch_path])
         # self.script_path = script_path
-        # for each set of files
-        self.filesets = []
-        for name, path in self.script_info['filesets'].items():
-            self.filesets.append(FWSFileSet(fileset_name=name, original_path=path, scratch_path=self.scratch_path))
-            print("added fileset", name, path) # , self.filesets[-1].get_common_path(), self.filesets[-1].original_path, self.filesets[-1].get_local_paths())
 
-        # set up logging (based on script)
+        # set up processor logging (based on script)
         if type(self.scratch_path) is tempfile.TemporaryDirectory:
-            self.log_path = f'{self.scratch_path}/{self.get_unique_name()}2.log'
+            self.log_path = f'{self.scratch_path}/{self.get_unique_name()}.log'
         else:
-            self.log_path = f'{self.scratch_path}/{self.get_unique_name()}2.log'
+            self.log_path = f'{self.scratch_path}/{self.get_unique_name()}.log'
         self.logger = logging.getLogger(self.processor_name())
+        print(">>>>>processor setup logger! named ", self.processor_name(), "path", self.log_path)
         logging.basicConfig(
             filename=self.log_path,
             format='%(asctime)s %(levelname)-8s %(message)s',
             level=logging.INFO,
             datefmt='%Y-%m-%d %H:%M:%S')
+
         # this sends to the screen too (for debugging))
         # self.logger.addHandler(logging.StreamHandler())
         # these redirect stdout, stderr to the logger
         # sys.stdout = StreamToLogger(self.logger, logging.INFO)
         # sys.stderr = StreamToLogger(self.logger, logging.ERROR)
+
+        # for each set of files
+        self.filesets = []
+        for name, path in self.script_info['filesets'].items():
+            self.filesets.append(FWSFileSet(fileset_name=name, original_path=path, scratch_path=self.scratch_path))
+            self.logger.info(f'added fileset {name}, {path}') # , self.filesets[-1].get_common_path(), self.filesets[-1].original_path, self.filesets[-1].get_local_paths())
 
         self.logger.info(f'started {self.processor_name()} on {os.path.basename(self.script_path)}')
 
@@ -488,6 +512,7 @@ class Watcher():
     def watch(self):
         # csk need to get the logger again when run in a separate process!
         new_logger = logging.getLogger(self.watch_name())
+        print(">>>>>processor watch logger! named ", self.watch_name(), "path", self.watch_log_path)
         logging.basicConfig(
             filename=self.watch_log_path,
             format='%(asctime)s %(levelname)-8s %(message)s',
